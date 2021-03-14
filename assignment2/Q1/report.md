@@ -10,3 +10,5 @@ The time complexity of the computation is $O(2^{2^n})$ for all input combination
 The **bias table** (the table containing the counts) is included in this folder (table.txt) and the histogram is as follows -
 
 ![](bias_histogram.png)
+
+The histogram is symmetric about $128$ and the biases(absolute difference from the mean probability of $1/2$) are not very high, indicating that this S-box is quite non-linear.
