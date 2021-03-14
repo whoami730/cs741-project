@@ -6,7 +6,6 @@ from z3 import *
 from tqdm import tqdm
 from fractions import Fraction
 import random
-from matplotlib.ticker import FormatStrFormatter
 import numpy as np
 
 def parity(x):
@@ -355,9 +354,11 @@ for k in b:
 cc = [145 if x==144 else x for x in counts]
 
 fig,ax = plt.subplots()
-c,b,pp = ax.hist(cc,bins=range(min(cc), max(cc)+2,2))
-ax.set_xticks(b)
+c,bb,pp = ax.hist(cc,bins=range(min(cc), max(cc) + 1,1),align='left')
+bb = [bb[i] for i in range(0,len(bb),2)]
+ax.set_xticks(bb)
 plt.show()
+
 #s = SPN(sbox6,pbox36,0,3)
 #pairs = []
 #for i in range(65536):
