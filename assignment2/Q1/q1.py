@@ -44,3 +44,15 @@ def aes_sbox_anal():
             hist_bins[bias[i]+128]+=1
     return bias,hist_bins
 
+bias,b = aes_sbox_anal()
+counts = []
+for k in b:
+    counts.extend([k]*b[k])
+
+cc = [145 if x==144 else x for x in counts]
+
+fig,ax = plt.subplots()
+c,bb,pp = ax.hist(cc,bins=range(min(cc), max(cc) + 1,1),align='left')
+bb = [bb[i] for i in range(0,len(bb),2)]
+ax.set_xticks(bb)
+plt.show()
