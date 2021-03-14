@@ -51,17 +51,17 @@ This can be also seen in the example above the biases for input_mask,output_mask
 ## Algorithm
 The algorithm involves a couple of things  
 z3 SMT solver is used involving theory of bitvectors and a MAX-SAT solver 
-- `bias` is calculated as original absolute bias times `2**sbox_size`  
-- `sboxf` uninterprated function is created on `BitVector(n)` `BitVector(n)` where `n` is sbox size in bits to represent the constraints for sbox bias for a corresponding input/output mask
-- `permutation` function creates constraints between the pbox relationship of input of round n+1 to output of round n
-- `inps` and `oups` are 2d arrays (num sboxes in a round times number of rounds ) of bitvectors representing the input and output masks to consider in each round
-- `objectives` is the objective we want the SMT solver to optimize i.e. the final bias of the network
-- Additional constraints are added namely
-  - If input masks of a corresponding sbox is zero, output mask should be zero
-  - If input masks are non-zero, output mask should be non-zero
-  - If bias corresponding to given input/output is zero, ignore that input output
-  - Atleast one input mask to first layer should be non-zero
-- `non_zero` is the array of sbox indices which we need the final round output masks to end up to (`non_zero = []` means we can take any optimal path we like) (used in question3 to reduce the number of key bits to bruteforce)
+- `bias` is calculated as original absolute bias times `2**sbox_size`    
+- `sboxf` uninterprated function is created on `BitVector(n)` `BitVector(n)` where `n` is sbox size in bits to represent the constraints for sbox bias for a corresponding input/output mask  
+- `permutation` function creates constraints between the pbox relationship of input of round n+1 to output of round n  
+- `inps` and `oups` are 2d arrays (num sboxes in a round times number of rounds ) of bitvectors representing the input and output masks to consider in each round  
+- `objectives` is the objective we want the SMT solver to optimize i.e. the final bias of the network  
+- Additional constraints are added namely  
+- If input masks of a corresponding sbox is zero, output mask should be zero  
+- If input masks are non-zero, output mask should be non-zero  
+- If bias corresponding to given input/output is zero, ignore that input output  
+- Atleast one input mask to first layer should be non-zero  
+- `non_zero` is the array of sbox indices which we need the final round output masks to end up to (`non_zero = []` means we can take any optimal path we like) (used in question3 to reduce the number of key bits to bruteforce)  
 
 The theoretical time complexity involved is guessing `2**pbox` sized input and output masks in each round which result in n-round linear approximation for the spn network. We figure out all input output masks for the first round, rest all input rounds are permutation of output mask of last round. So we search over 1 input mask round, and n output mask rounds. So the complexity should be $O((2^{p})^{n + 1})$ where $p$ is the size of pbox and $n$ is the number of rounds.
 
