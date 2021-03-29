@@ -4,7 +4,9 @@
 Linear Feeback shift registers are one of the easiest way to generate seemingly random bits from known bits. The word linear suggests that the algorithm is linear in nature, as in, the next output bit depends linearly on the current bits.
 
 A simple way to write LFSR is:\
-$$S_{n} = \sum_{j=1}^{j=n}a_j*S_{n-j}$$
+```math
+S_{n} = \sum_{j=1}^{j=n}a_j*S_{n-j}
+```
 where\
 $n$ is total numebr of input bits\
 $S_i$ is the input bits being used\
