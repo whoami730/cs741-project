@@ -32,7 +32,7 @@ $b$ a copy of the *last discrepancy* since $L$ was updated,\
 and the multiplication by X^m is but an index shift. \
 The new discrepancy can now easily be computed as $d = d−(d/b)b = d−d = 0$. This above algorithm can further be simplified for modulo 2 case. See Wiki.
 
-Sauce: 
+## References: 
 - [Wikipedia](https://en.wikipedia.org/wiki/Berlekamp%E2%80%93Massey_algorithm)
-- [Blog Post, Seems correct idk](https://bell0bytes.eu/linear-feedback-shift-registers/)
+- [This Blog Post](https://bell0bytes.eu/linear-feedback-shift-registers/)
 - [BMA - IIT Kharagpur](https://cse.iitkgp.ac.in/~debdeep/courses_iitkgp/Crypto/slides/BMA.pdf)
