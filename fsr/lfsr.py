@@ -27,3 +27,33 @@ def lfsr_fib_16bit(n, seed, feedback_polynomial, steps):
     print(f"Output: {opt}, cycle: {cycle}")
     return cycle
 
+def bm_algo(S):
+    """ Berlekamp - Massey algo: PYTHON IMPLEMENTATION
+    i/p:    S:  `list` of 0s and 1s, ith index is ith bit in (MSB) S0, S1, ..., Sn (LSB). The n bit o/p of lfsr.
+    o/p:   min degree of C, Feedback Polynomial, anything else that we want 
+    """
+    C = [1]     # Connection polynomial. The one that generates next o/p bit
+    L = 0       # IDK
+    m = -1      # somethingg
+    B = [1]     # Previous value of C, before it was updated.
+    n = 0       # counter. i.e. the iterator
+    N = len(S)  # The length of i/p
+
+    while(n < N):
+        bit_calc = [i&j for i,j in zip(C[1:],S[n-1:n-L-1:-1])]
+        d = S[n] ^ reduce(lambda x, y: x^y, bit_calc,0)
+        if d & 1:
+            c_temp = C.copy()
+            lc = len(C)
+            next_C = [0]*(n-m) + B
+            C = [i^j for i,j in zip(C,next_C)] + next_C[lc:]
+            if L <= n//2:
+                L = n + 1 - L
+                m = n
+                B = c_temp.copy()
+        n += 1
+    return (L,C)
+
+s = list(map(int, input("Enter the seqn in space seperated form, MSB to LSB form: ").strip().split(' ')))
+print("L (minimal length), C (Feedback polynomial): ")
+print(bm_algo(s))
