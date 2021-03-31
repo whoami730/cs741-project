@@ -3,6 +3,35 @@ from time import time
 from collections import Counter
 from z3 import *
 
+def all_smt(s, initial_terms):
+    """
+    Yield all satisfying models for solver s 
+    for the given set of `initial_terms`
+    """
+    def block_term(s, m, t):
+        s.add(t != m.eval(t))
+
+    def fix_term(s, m, t):
+        s.add(t == m.eval(t))
+
+    def all_smt_rec(terms):
+        if sat == s.check():
+            m = s.model()
+            yield m
+            for i in range(len(terms)):
+                s.push()
+                block_term(s, m, terms[i])
+                for j in range(i):
+                    fix_term(s, m, terms[j])
+                for m in all_smt_rec(terms[i:]):
+                    yield m
+                s.pop()
+    for m in all_smt_rec(list(initial_terms)):
+        yield m
+
+
+
+
 class MT19937:
     def __init__(self, c_seed=0, bit_64=False):
         # MT19937
@@ -222,6 +251,31 @@ class Breaker():
             return m[m.decls()[0]].as_long()
         else:
             print(time()-t_start)
+        
+    def untwist(self, outputs):
+        """
+        Reversing the twist operation of MT 19937
+        Recovers the state before twist 
+        (all bits of STATE[1:624] and MSB of STATE[0])
+        since we have information about only 32*623+1 bit (19937)
+        rest bits are dont care
+        """
+        MT = [BitVec(f'MT[{i}]', 32) for i in range(self.n)]
+        for i in range(self.n):
+            x = (MT[i] & self.upper_mask) + \
+                (MT[(i + 1) % self.n] & self.lower_mask)
+            xA = LShR(x, 1)
+            xA = If(x & 1 == 1, xA ^ self.a, xA)
+            MT[i] = MT[(i + self.m) % self.n] ^ xA
+        s = Solver()
+        for i in range(len(outputs)):
+            s.add(outputs[i] == MT[i])
+        if s.check() == sat:
+            model = s.model()
+            untwisted = {str(i): model[i].as_long() for i in model.decls()}
+            untwisted = [untwisted[f'MT[{i}]'] for i in range(624)]
+            return untwisted
+        print('uh oh')
 
 class BreakerPy(Breaker):
     def __init__(self):

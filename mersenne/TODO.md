@@ -10,3 +10,7 @@
 6. LCG
 7. Truncated LCG
 8. LSFR
+
+https://dspace.cvut.cz/bitstream/handle/10467/69409/F8-BP-2017-Molnar-Richard-thesis.pdf?sequence=-1&isAllowed=y
+
+https://www.ambionics.io/blog/php-mt-rand-prediction
