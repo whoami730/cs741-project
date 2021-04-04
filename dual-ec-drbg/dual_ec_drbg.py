@@ -31,7 +31,6 @@ def xgcd(a, b):
         if(b == 0):
             return (a, a1*aneg, b1*bneg)
 
-
 def SqrRoots(a, n):
     def inverse_mod(a, n):
         (g, xa, xb) = xgcd(a, n)
@@ -135,35 +134,44 @@ class Breaker(Dual_EC):
             Try to recover the current state of the Dual_EC_DRBG - can't recover older states!
         '''
 
-        it = 1
+        it = 240
         oup = self.next()
         l = self.possible_points(oup)
-        # find all possible next states as
-        next_s = list(set([(p * self.d).x for p in l]))
-        # cleanse these states over time
-        while (it < 5):
-            print(f"Run {it} : Found possible {len(next_s)} state(s)".format())
-            
-            if (len(next_s) <= 1):
-                break
-                
-            it = it + 1
-            s = []
-            oup = self.next()
-            for i in next_s:
-                rng = Dual_EC(i, self.P, self.Q)
-                if (rng.next() == oup):
-                    s.append(rng.state)
-            
-            next_s = list(set(s))
-            # s_i -> r_i -> s_i+1
 
-        assert len(next_s) == 1, next_s
-        assert (next_s[0]) == self.state
-        print(f"Took {it} iterations to recover the seed")
-        return next_s[0], it
+        # find all possible next states
+        next_s = list(set([(p * self.d).x for p in l]))
+
+        next_pts = [Dual_EC(i,self.P,self.Q).next() for i in next_s]
+        # need first 240 bits to generate an initial list of possible states
+
+        # the paper claims that no more than 256 bits are needed to break the RNG
+        oup1 = self.next()
+        p = 31
+
+        print(f"Initial count of possible states : {len(next_s)}".format())
+
+        inds = list(range(len(next_s)))
+        
+        while (p > 0) :
+
+            if (len(inds) <= 1):
+                break
+
+            inds = list(filter(lambda x: ((oup1 & (1<<p)) == (next_pts[x] & (1<<p))),inds))
+            
+            it += 1
+            p -= 1
+
+        assert len(inds) == 1, [next_s[x] for x in inds]
+        print(f"Old state - {next_s[inds[0]]}".format())
+        print(f"New state - {((next_s[inds[0]] * self.P).x * self.P).x}".format())
+        assert ((next_s[inds[0]] * self.P).x * self.P).x == self.state
+        print(f"Took {it} bits to recover the seed".format())
+        return next_s[inds[0]], it
                 
-rand_seed = urandbits(256)
-d = Breaker(256)
-m = d.break_dec()
-print(m)
+if __name__ == '__main__':
+
+    rand_seed = urandbits(256)
+    d = Breaker(rand_seed)
+    m = d.break_dec()
+    print(m)
