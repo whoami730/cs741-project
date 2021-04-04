@@ -76,10 +76,60 @@ def check_untwist():
     assert untwisted_orig[1:]==untwisted[1:]
     print("all good and dandy")
 
-seed = urandbits(32)
-r = MT19937(seed)
-outputs = [r.extract_number() for i in range(624)]
-b = Breaker()
+def test_recover_32bit():
+    rand_seed = urandbits(32)
+    r = MTpython(rand_seed)
+    b = BreakerPy()
+    outputs = [r.extract_number() for i in range(624)]
+    recovered_seed = b.get_32_bit_seed_python(outputs)
+    print(rand_seed,recovered_seed)
+    assert recovered_seed == rand_seed
+    print("success")
+
+def test_recover_init_by_array(x):
+    rand_seeds = [urandbits(32) for i in range(x)]
+    r = MTpython(0)
+    r.init_by_array(rand_seeds)
+    b = BreakerPy()
+    outputs = [r.extract_number() for i in range(624)]
+    recovered_seeds = b.get_seeds_python(outputs,x)
+    print(rand_seeds)
+    print(recovered_seeds)
+    assert rand_seeds==recovered_seeds
+    print("success")
+
+def int_to_array(k):
+    k_byte = int.to_bytes(k,(k.bit_length()+7)//8,'little')
+    k_arr = [k_byte[i:i+4] for i in range(0,len(k_byte),4)]
+    return [int.from_bytes(i,'little') for i in k_arr ]
+
+def array_to_int(arr):
+    return int.from_bytes( b"".join([int.to_bytes(i,4,'little') for i in arr]) ,'little')
+
+def test_python_int_seeds():
+    r = MTpython(0)
+    for i in range(1,1000):
+        int_seed = urandbits(8*i)
+        array_seed = int_to_array(int_seed)
+        assert array_to_int(array_seed)==int_seed
+        r.init_by_array(array_seed)
+        random.seed(int_seed)
+        assert r.get_state()==random.getstate()
+
+def test_python_int_seeds2():
+    r = MTpython(0)
+    for i in range(1,1000):
+        int_seed = urandbits(8*i)
+        r.seed(int_seed)
+        random.seed(int_seed)
+        assert r.get_state()==random.getstate()
+
+
+
+
+outputs = [random.getrandbits(32) for i in range(624)]
+b = BreakerPy()
+
 #r.init_by_array([0x44434241,0x45])
 #random.seed(0x4544434241)
 #print(r.get_state()==random.getstate())

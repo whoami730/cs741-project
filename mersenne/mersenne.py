@@ -96,9 +96,9 @@ class MT19937:
 
 
 class MTpython(MT19937):
-    def __init__(self,seed):
+    def __init__(self,seed=0):
         MT19937.__init__(self,0)
-        self.init_32bit_seed(seed)
+        self.seed(seed)
 
     def init_by_array(self, init_key):
         self.seed_mt(19650218)
@@ -148,6 +148,20 @@ class MTpython(MT19937):
                 self.MT[0] = self.MT[self.n - 1]
                 i = 1
         self.MT[0] = 0x80000000
+    
+    def seed(self,seed_int):
+        self.init_by_array(self.int_to_array(seed_int))
+
+    def int_to_array(self,k):
+        if k==0:
+            return [0]
+        k_byte = int.to_bytes(k,(k.bit_length()+7)//8,'little')
+        k_arr = [k_byte[i:i+4] for i in range(0,len(k_byte),4)]
+        return [int.from_bytes(i,'little') for i in k_arr ]
+
+    def array_to_int(self,arr):
+        arr_bytes  = b"".join([int.to_bytes(i,4,'little') for i in arr])
+        return int.from_bytes( arr_bytes ,'little')
 
 class Breaker():
     def __init__(self, bit_64=False):
@@ -280,104 +294,24 @@ class Breaker():
 class BreakerPy(Breaker):
     def __init__(self):
         Breaker.__init__(self)
-    def clone_state_index(self, outputs, index, num_tries=1000):
-        untampered = list(map(self.ut, outputs))
+
+    def get_ith(self, outputs):
+        i_min_624, i_min_623, i_min_227 = map(self.ut, outputs)
+        x = (i_min_624 & self.upper_mask) + \
+            (i_min_623 & self.lower_mask)
+        xA = x >> 1
+        if (x % 2) != 0:
+            xA = xA ^ self.a
+        y = i_min_227 ^ xA
+        y = y ^ ((y >> self.u) & self.d)
+        y = y ^ ((y << self.s) & self.b)
+        y = y ^ ((y << self.t) & self.c)
+        y = y ^ (y >> self.l)
+        return y & ((1 << self.w) - 1)
+
+    def get_32_bit_seed_python(self, outputs):
+        MT_init = MT19937(19650218).MT
         MT = [BitVec(f'MT[{i}]', 32) for i in range(self.n)]
-        for i in range(index, self.n):
-            MT[i] = BitVecVal(untampered[i - index], 32)
-        for i in range(0, self.n):
-            x = (MT[i] & self.upper_mask) + \
-                (MT[(i + 1) % self.n] & self.lower_mask)
-            xA = LShR(x, 1)
-            xA = If(Extract(0, 0, x) == 0, xA, xA ^ self.a)
-            MT[i] = MT[(i + self.m) % self.n] ^ xA
-            MT[i] = simplify(MT[i])
-        constraints = []
-        S = Solver()
-        t_start = time()
-        #models = [Counter() for _ in range(624)]
-        models = []
-        S.add([MT[i % self.n] == v for i,
-               v in enumerate(untampered[self.n - index:])])
-        count = 0
-        while S.check() == sat and count < num_tries:
-            m = S.model()
-            #block = [ decl()!=m[decl] for decl in m ]
-            # S.add(Or(block))
-            result = {str(i): m[i].as_long() for i in m}
-            # for i in range(self.n):
-            #    if i<index:
-            #        models[i][result[f'MT[{i}]']]+=1
-            #    else:
-            #        models[i][untampered[i]]+=1
-            count += 1
-            result = [result[f'MT[{i}]'] for i in range(
-                index)] + untampered[:self.n - index]
-            return result
-            print(result[:index])
-            models.append(result)
-        print("time take", time() - t_start)
-        return models
-
-    def discover_index(self, first, outputs):
-        for i in range(624):
-            r = MT19937(0)
-            mt = self.clone_state_index(outputs, i, 1)
-            r.MT = mt
-            r.MT[0] = first
-            r.index = i
-            our = [r.extract_number() for _ in range(len(outputs))]
-            if our == outputs:
-                print(i)
-                # return mt,i
-    def get_state_before_twist(self, outputs):
-        MT_init = MT19937(19650218).MT
-        MT = [BitVec(f'MT[{i}]', 32) for i in range(self.n + 1)]
-        # for i in range(self.n):
-        #    MT[i] = BitVecVal(MT_init[i],32)
-        #SEED = BitVec('seed',32)
-        # i=1
-        # for k in range(self.n):
-        #    MT[i] = (MT[i] ^ ((MT[i-1] ^ LShR(MT[i-1],30)) * 1664525)) + SEED
-        #    i+=1
-        #    if i>=self.n:
-        #        MT[0] = MT[self.n-1]
-        #        i=1
-        #i = 2
-        # for k in range(self.n-1):
-        #    MT[i] = (MT[i] ^ ((MT[i-1] ^ LShR(MT[i-1],30)) * 1566083941)) - i
-        #    i+=1
-        #    if i>=self.n:
-        #        MT[0] = MT[self.n-1]
-        #        i=1
-        S = Solver()
-        S.add(MT[0] == 0x80000000)
-        #MT[0] = BitVecVal(0x80000000,32)
-        for i in range(0, self.n):
-            x = (MT[i] & self.upper_mask) + \
-                (MT[(i + 1) % self.n] & self.lower_mask)
-            xA = LShR(x, 1)
-            xA = If(Extract(0, 0, x) == 0, xA, xA ^ self.a)
-            MT[i] = MT[(i + self.m) % self.n] ^ xA
-        t_start = time()
-        models = []
-        S.add([i == j for i, j in zip(MT, map(self.ut, outputs))])
-        while S.check() == sat:  # and len(models)<1000:
-            print(len(models))
-            m = S.model()
-            block = [decl() != m[decl] for decl in m]
-            S.add(Or(block))
-
-            result = {str(i): m[i].as_long() for i in m}
-            models.append([result[f'MT[{i}]'] for i in range(624)])
-            # models.append(m)
-            #models.append([ m[MT[i]] for i in range(624) ])
-        print("time take", time() - t_start)
-        return models
-
-    def get_seed_python(self, outputs):
-        MT_init = MT19937(19650218).MT
-        MT = [BitVec(f'MT[{i}]', 32) for i in range(self.n + 1)]
         for i in range(self.n):
             MT[i] = BitVecVal(MT_init[i], 32)
         SEED = BitVec('seed', 32)
@@ -395,16 +329,60 @@ class BreakerPy(Breaker):
                 MT[0] = MT[self.n - 1]
                 i = 1
         MT[0] = BitVecVal(0x80000000, 32)
-        for i in range(0, self.n):
-            x = (MT[i] & self.upper_mask) + \
-                (MT[(i + 1) % self.n] & self.lower_mask)
-            xA = LShR(x, 1)
-            xA = If(Extract(0, 0, x) == 0, xA, xA ^ self.a)
-            MT[i] = MT[(i + self.m) % self.n] ^ xA
+        untwisted = self.untwist(list(map(self.ut,outputs)))
+        print(untwisted)
         t_start = time()
         S = Solver()
-        S.add([i == j for i, j in zip(MT, map(self.ut, outputs))])
+        S.add([i == j for i, j in zip(MT, untwisted)])
         if S.check() == sat:
             m = S.model()
             print("time take", time() - t_start)
             return m[m.decls()[0]].as_long()
+
+    def get_seeds_python(self, outputs, num_seeds=5):
+        MT_init = MT19937(19650218).MT
+        MT = [BitVec(f'MT[{i}]', 32) for i in range(self.n)]
+        for i in range(self.n):
+            MT[i] = BitVecVal(MT_init[i], 32)
+        SEEDS = [BitVec(f'seed[{i}]', 32) for i in range(num_seeds)]
+        i,j = 1,0
+        for k in range(self.n):
+            MT[i] = (MT[i] ^ ((MT[i - 1] ^ LShR(MT[i - 1], 30)) * 1664525)) + SEEDS[j] + j
+            i += 1
+            j +=1
+            if i >= self.n:
+                MT[0] = MT[self.n - 1]
+                i = 1
+            if j==num_seeds:
+                j=0
+        for k in range(self.n - 1):
+            MT[i] = (MT[i] ^ ((MT[i - 1] ^ LShR(MT[i - 1], 30)) * 1566083941)) - i
+            i += 1
+            if i >= self.n:
+                MT[0] = MT[self.n - 1]
+                i = 1
+        MT[0] = BitVecVal(0x80000000, 32)
+        untwisted = self.untwist(list(map(self.ut,outputs)))
+        print(untwisted)
+        t_start = time()
+        S = Solver()
+        S.add([i == j for i, j in zip(MT, untwisted)])
+        if S.check() == sat:
+            m = S.model()
+            print("time take", time() - t_start)
+            recovered = { str(i):m[i].as_long() for i in m.decls() }
+            recovered = [ recovered[f'seed[{i}]'] for i in range(num_seeds) ]
+            return recovered
+        
+    def int_to_array(self,k):
+        if k==0:
+            return [0]
+        k_byte = int.to_bytes(k,(k.bit_length()+7)//8,'little')
+        k_arr = [k_byte[i:i+4] for i in range(0,len(k_byte),4)]
+        return [int.from_bytes(i,'little') for i in k_arr ]
+
+    def array_to_int(self,arr):
+        arr_bytes  = b"".join([int.to_bytes(i,4,'little') for i in arr])
+        return int.from_bytes( arr_bytes ,'little')
+
+
