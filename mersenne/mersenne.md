@@ -30,11 +30,12 @@ f = 1812433253
 ```
 
 ### Initialization
-The state needed for a Mersenne Twister implementation is an array of $n$ values of $w$ bits each. To initialize the array, a w-bit seed value is used to supply $x_0$ through $x_{n − 1}$ by setting $x_0$ to the seed value and thereafter setting
+The state needed for a Mersenne Twister implementation is an array of $n$ values of $w$ bits each. To initialize the array, a w-bit seed value is used to supply $x_0$ through $x_{n-1}$ by setting $x_0$ to the seed value and thereafter setting
 
-$$x_i = f \times (x_{i−1} \oplus (x_{i−1} >> (w−2))) + i$$
+$$x_i = f \times (x_{i-1} \oplus (x_{i-1} >> (w-2))) + i$$
 
-for i from 1 to n−1. The first value the algorithm then generates is based on $x_n$
+for $i$ from 1 to n-1. The first value the algorithm then generates is based on $x_n$
+
 
 ![](merstw.gif)
 
@@ -74,6 +75,12 @@ The modelling of `untwist` can reverse the `twist` operation to go back 624 outp
 
 Our method is extremely memory and space efficient since SAT solvers work with negligible memory (<500 MB). And way faster and efficient considering the space time tradeoff involved.
 
+The same methodology is applicable and extendible to various other cases where it might not be possible at all to come up with an angle of attack. For example.
+- Outputs of non-32 bit sizes, say `random.gerandbits(31)` is called
+- One of the most used methods from random library is usually `rand` which generates a random float in 0 to 1 (which internally makes two MT calls and throws away 11 bits to generate the random number)
+- `random.randrange(1,n)` is called which may internally make use of multiple MT calls.
+
+All of the various methods from random libraries can be used to recover the state/seed whereas all other approaches merely work if only we have 624 consecutive `random.getrandbits(32)` calls which is quite rare to observe in a real life application.
 
 ## Challenges
 While the wikipedia implementation is treated as the standard mersenne twister, we found that our implementation was producing different outputs from the implementations in programming languages even after initializing by the same seed. After dissecting a lot of source code, we figured out that the wiki implementation serves as the base of merssene twister implementation everywhere with a difference in the way it is seeded. All modern mersenne twister are seeded with a function `init_by_array` which takes an array of 32-bit seeds (or 32 bit hashes of seed objects). Later we found that this was proposed as an enhancement to equidistribution property to the base mersenne twister [MT2002](http://www.math.sci.hiroshima-u.ac.jp/m-mat/MT/MT2002/emt19937ar.html).  
@@ -91,8 +98,6 @@ Other drawback of our approach is that SMT solvers operate in the realm of first
 Another drawback can be when there are more than one possible seed/state to produce a given set of outputs, SAT solvers are designed and optimized to find a single satisfying assignment, finding successive assignments, may or may not translate equivalently.
 
 Yet another drawback is lack of parallelism. The current design of SAT/SMT solvers is massively single threaded and may not use the full capabilities and cores of the machine to find a satisfying assignment.
-
-
 
 
 ## References
