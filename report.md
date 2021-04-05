@@ -5,7 +5,7 @@ Study of (novel) methods for seed and state recovery using reduced number of out
 ## Introduction
 Given a PRNG algorithm $A$, which is initialised using an initial value aka `seed` and $x_1, x_2, ..., x_k$ be the generated outputs from the random number generator, we wish to determine the starting `seed` or the state $S$ required to predict the future outputs of the generator.
 
-We were able to recover `seed` of standard mersenne twister (MT19937), which is the most used PRNG across all software systems, using only **3** outputs using SMT solvers in under 5 minutes, whereas all previous work is on state recovery using 624 consecutive outputs.
+We were able to recover `seed` of standard mersenne twister (MT19937), which is the most used PRNG across all software systems, using only **3** outputs using SMT solvers in under 5 minutes, whereas all previous work is on state recovery using *624 consecutive outputs*.
 
 We also employed SMT solvers to recover the state of other well known PRNGs like LCG, LSFRs and combiner generators using a set of LSFRs.
 
