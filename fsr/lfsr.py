@@ -54,24 +54,25 @@ def bm_algo(S):
     N = len(S)  # The length of i/p
 
     while(n < N):
-        # print(C,S[n-L:n+1])
-        bit_calc = [i&j for i,j in zip(C,S[n-L:n+1])]
+        bit_calc = [i&j for i,j in zip(C,S[n-L:n+1][::-1])]
         d = reduce(lambda x, y: x^y, bit_calc,0)
         if d:
             c_temp = C.copy()
             lc = len(C)
-            next_C = [0]*(n-m) + B
+            next_C = [0]*(n-m) + B + [0]*(lc - len(B) - n + m)
             C = [i^j for i,j in zip(C,next_C)] + next_C[lc:]
-            print(n, d, m,L, B, next_C, C)
-            # temp = [i&j for i,j in zip(C,S[n:])]
-            # print(reduce(lambda x, y: x^y, temp,0))
+            # print(n, d, m,L, B, next_C, C)
+
             if L <= n>>1:
                 L = n + 1 - L
                 m = n
                 B = c_temp.copy()
         n += 1
-    return (L,C[::-1])
+    return (L,C,S[:L][::-1])
 
 s = [int(i) for i in input("Enter the seqn, MSB to LSB form: ").strip()]
-print("L (minimal length), C (Feedback polynomial MSB to LSB): ")
-print(bm_algo(s))
+print("L (minimal length), C (Feedback polynomial MSB to LSB), Seed(MSB to LSB): ")
+l,c,ss = bm_algo(s)
+print(l,''.join(map(str,c)),''.join(map(str,ss)))
+
+# TODO: Encode the seed finding and BM algo into sat solver from Z3. Use BitVec.
