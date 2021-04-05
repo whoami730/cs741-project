@@ -13,13 +13,110 @@ We aim to understand the predictability of PRNGs and further analysed the design
 
 Problem Statement + Summary
 
+# Table of Contents
+1. [Mersenne Twister](#mersenne-twister)
+2. [FSR](#FSR)
+3. [LCG](#LCG)
+4. [Dual_EC_DRBG](#Dual_EC_DRBG)
+
+# Mersenne Twister
+
 ## Background
 Previous work done in this topic
 
 ## Our Work
 Exactly what we did (setup up something, installed something, ran code from github etc. whatever small things we did for the project)
 
-# Personal Section
+## Challenges / Difficulties
+
+
+## Limitations / Assumptions
+
+
+## Compatibility issues
+Could not run a particular version of software or a software didn't worked in a particular os
+
+## Understanding existing papers
+sir ka example -> this particular paper was very cryptic and there were a lot of notions and after enormous discussion it took us 1 week to understand 
+
+## Reading manual
+
+
+## Critique / Comparison
+Critique an idea or paper or an attack senario
+Comparison with others work or idea
+
+## Extensions
+
+
+# FSR
+
+## Background
+Previous work done in this topic
+
+## Our Work
+Exactly what we did (setup up something, installed something, ran code from github etc. whatever small things we did for the project)
+
+## Challenges / Difficulties
+
+
+## Limitations / Assumptions
+
+
+## Compatibility issues
+Could not run a particular version of software or a software didn't worked in a particular os
+
+## Understanding existing papers
+sir ka example -> this particular paper was very cryptic and there were a lot of notions and after enormous discussion it took us 1 week to understand 
+
+## Reading manual
+
+
+## Critique / Comparison
+Critique an idea or paper or an attack senario
+Comparison with others work or idea
+
+## Extensions
+
+
+# LCG
+
+## Background
+Previous work done in this topic
+
+## Our Work
+Exactly what we did (setup up something, installed something, ran code from github etc. whatever small things we did for the project)
+
+## Challenges / Difficulties
+
+
+## Limitations / Assumptions
+
+
+## Compatibility issues
+Could not run a particular version of software or a software didn't worked in a particular os
+
+## Understanding existing papers
+sir ka example -> this particular paper was very cryptic and there were a lot of notions and after enormous discussion it took us 1 week to understand 
+
+## Reading manual
+
+
+## Critique / Comparison
+Critique an idea or paper or an attack senario
+Comparison with others work or idea
+
+## Extensions
+
+
+# Dual_EC_DRBG
+
+## Background
+Previous work done in this topic
+
+## Our Work
+Exactly what we did (setup up something, installed something, ran code from github etc. whatever small things we did for the project)
+
 ## Challenges / Difficulties
 
 
