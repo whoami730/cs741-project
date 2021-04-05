@@ -21,7 +21,6 @@ The existing method indeed allows us to recover the internal state given just a 
 [Z3Prover](https://github.com/Z3Prover/z3) has also been used to recover the internal state, but it relies on the knowledge of the parameters, and works well only when $m$ is a power of $2$.
 
 
-
-
 ## References
+- [LCG](https://en.wikipedia.org/wiki/Linear_congruential_generator)
 - [Marsaglia's Theorem](https://en.wikipedia.org/wiki/Marsaglia%27s_theorem)
