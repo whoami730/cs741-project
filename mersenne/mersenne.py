@@ -3,6 +3,17 @@ from time import time
 from collections import Counter
 from z3 import *
 
+def seed_arr_len(arr):
+    mode_vals = []
+    for j in range(2,10):
+        x = [i for i in range(624) if abs(arr[i]-arr[j])<624]
+        mode_vals.append(
+            mode([j-i for i,j in zip(x,x[1:])])
+        )
+    return mode(mode_vals)
+
+
+
 def all_smt(s, initial_terms):
     """
     Yield all satisfying models for solver s 
@@ -151,6 +162,11 @@ class MTpython(MT19937):
     
     def seed(self,seed_int):
         self.init_by_array(self.int_to_array(seed_int))
+
+    def random(self):
+        a = self.extract_number()>>5
+        b = self.extract_number()>>6
+        return (a*67108864.0+b)*(1.0/9007199254740992.0)
 
     def int_to_array(self,k):
         if k==0:
@@ -373,6 +389,54 @@ class BreakerPy(Breaker):
             recovered = { str(i):m[i].as_long() for i in m.decls() }
             recovered = [ recovered[f'seed[{i}]'] for i in range(num_seeds) ]
             return recovered
+        
+    def get_seeds_python_fast(self,outputs):
+        MT = [BitVec(f'MT[{i}]',32) for i in range(624)]
+        i=2
+        for k in range(self.n - 1):
+            MT[i] = (MT[i] ^ ((MT[i - 1] ^ LShR(MT[i - 1], 30)) * 1566083941)) - i
+            i += 1
+            if i >= self.n:
+                MT[0] = MT[self.n - 1]
+                i = 1
+        MT[0] = BitVecVal(0x80000000, 32)
+        untwisted = self.untwist(list(map(self.ut,outputs)))
+        S = Solver()
+        for i in range(1,self.n):
+            S.add(untwisted[i]==MT[i])
+        if S.check()==sat:
+            print(S.statistics())
+            m = S.model()
+            mt_vals = {str(i):m[i].as_long() for i in m.decls()}
+            mt_intermediate = [mt_vals[f'MT[{i}]'] for i in range(1,624) ]
+
+        MT_init = MT19937(19650218).MT
+        MT = [BitVecVal(i,32) for i in MT_init]
+        SEEDS = [BitVec(f'seed[{i}]', 32) for i in range(624)]
+        i,j = 1,0
+        for k in range(self.n):
+            MT[i] = (MT[i] ^ ((MT[i - 1] ^ LShR(MT[i - 1], 30)) * 1664525)) + SEEDS[j] + j
+            i += 1
+            j +=1
+            if i >= self.n:
+                MT[0] = MT[self.n - 1]
+                i = 1
+            if j==self.n:
+                j=0
+        S = Solver()
+        for i in range(1,self.n):
+            S.add(mt_intermediate[i-1]==MT[i])
+        if S.check() == sat:
+            print(S.statistics())
+            m = S.model()
+            recovered = { str(i):m[i].as_long() for i in m.decls() }
+            recovered = [ recovered[f'seed[{i}]'] for i in range(len(m.decls())) ]
+            
+            slen = seed_arr_len(recovered)
+            seed_arr = [recovered[i]+ slen*(i//slen) for i in range(624)]
+            if slen==1:
+                return seed_arr[2]
+            return seed_arr[slen:slen+2]+seed_arr[2:slen]
         
     def int_to_array(self,k):
         if k==0:
