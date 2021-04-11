@@ -1,6 +1,7 @@
 """ Some functions to implement Linear Feedback Shift Register. """
 
 from functools import reduce
+import time
 
 #NOTE: The use of 1 in feedback_polynomial is for the first bit. the bit that we are going to output.
 def generate_lfsr(seed: list, feedback_polynomial: list, steps: int):
@@ -35,11 +36,11 @@ def generate_lfsr(seed: list, feedback_polynomial: list, steps: int):
     print(f"Output: {''.join(map(str,opt))}")
 
 # i/p - o/p code for LFSR
-# print("\nLeftmost bit is MSB")
-# sd = [int(i) for i in input("Seed for LFSR: ").strip()]
-# fdb = [int(i) for i in input("Feedback Ploynomial: ").strip()]
-# st = int(input("Steps: ").strip())
-# generate_lfsr(sd,fdb,st)
+print("\nLeftmost bit is MSB")
+sd = [int(i) for i in input("Seed for LFSR: ").strip()]
+fdb = [int(i) for i in input("Feedback Ploynomial: ").strip()]
+st = int(input("Steps: ").strip())
+generate_lfsr(sd,fdb,st)
 
 def bm_algo(S):
     """ Berlekamp - Massey algo: PYTHON IMPLEMENTATION
@@ -68,11 +69,33 @@ def bm_algo(S):
                 m = n
                 B = c_temp.copy()
         n += 1
-    return (L,C,S[:L][::-1])
+    return (L,C[::-1],S[:L][::-1])
 
 s = [int(i) for i in input("Enter the seqn, MSB to LSB form: ").strip()]
 print("L (minimal length), C (Feedback polynomial MSB to LSB), Seed(MSB to LSB): ")
 l,c,ss = bm_algo(s)
 print(l,''.join(map(str,c)),''.join(map(str,ss)))
+# Output 2*len(s) of random bits using the above feedback_poly and seed.
+print('\n2*len(i/p) LFSR bits using the above seen and feedback polynomial')
+generate_lfsr(ss,c,2*len(s))
 
 # TODO: Encode the seed finding and BM algo into sat solver from Z3. Use BitVec.
+
+def lfsr_z3(seed, feedback_polynomial, steps):
+    """n-bit LFSR.
+    seed: BitVec of n bits
+    feedbackpoly = BitVec of n bits
+    steps is steps
+    """
+
+def bm_algo_z3(S: list):
+    """Berlekamp - Massey algo: in Z3-solver
+    i/p:    S: `list` of 0s and 1s, Sn, Sn-1, Sn-2, ... S1, S0.
+    o/p:    
+    """
+    t_start = time()
+    n = len(list)
+    S_bitvec = BitVec('s', n)
+    seed = BitVec('seed', n)
+    c = BitVec('comb_poly', n)
+    # nxt_bev = 
