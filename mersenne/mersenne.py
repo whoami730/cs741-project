@@ -2,6 +2,7 @@ import random
 from time import time
 from collections import Counter
 from z3 import *
+from statistics import mode
 
 def seed_arr_len(arr):
     mode_vals = []

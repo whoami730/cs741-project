@@ -132,13 +132,14 @@ def test_python_seed_recovery_fast():
     random.seed(rand_seed)
     outputs = [random.getrandbits(32) for i in range(624)]
     b = BreakerPy()
-    seed_arr = b.get_seeds_python2(outputs)
+    seed_arr = b.get_seeds_python_fast(outputs)
     assert seed_arr==rand_seed_arr
     print("recovered seed :",array_to_int(seed_arr))
     print("success")
 
 outputs = [random.getrandbits(32) for i in range(624)]
 b = BreakerPy()
+test_python_seed_recovery_fast()
 
 #r.init_by_array([0x44434241,0x45])
 #random.seed(0x4544434241)
