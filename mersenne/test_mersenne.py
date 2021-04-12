@@ -1,4 +1,5 @@
 import random
+import numpy
 from time import time
 from mersenne import *
 import os
@@ -137,9 +138,22 @@ def test_python_seed_recovery_fast():
     print("recovered seed :",array_to_int(seed_arr))
     print("success")
 
-outputs = [random.getrandbits(32) for i in range(624)]
+
+from numpy import random as r
+
+rand_seed = urandbits(32)
+r.seed(rand_seed)
 b = BreakerPy()
-test_python_seed_recovery_fast()
+outputs = [(i,r.randint(0,2**32)) for i in range(3)]
+recovered_seed = b.get_seed_mt(outputs)
+print(rand_seed,recovered_seed)
+assert recovered_seed == rand_seed
+print("success")
+
+
+# outputs = [random.getrandbits(32) for i in range(624)]
+# b = BreakerPy()
+# test_python_seed_recovery_fast()
 
 #r.init_by_array([0x44434241,0x45])
 #random.seed(0x4544434241)

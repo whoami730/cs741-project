@@ -5,6 +5,10 @@ import random
 from Crypto.Util.number import *
 from fpylll import *
 from time import *
+import sympy
+import sympy.polys.matrices as matrices
+import sys
+sys.setrecursionlimit(100000)
 
 def all_smt(s, initial_terms):
     """
@@ -33,8 +37,7 @@ def all_smt(s, initial_terms):
         yield m
 
 class truncated_lcg:
-    # assume that n < 2**32; and truncated_lcg outputs top 16 bits of the result
-    def __init__(self, seed, a, b, n,truncation=16):
+    def __init__(self, seed, a, b, n,truncation):
         self.state = seed
         self.a = a
         self.b = b
@@ -48,35 +51,48 @@ class truncated_lcg:
         
         
 class Breaker(truncated_lcg):
-    def __init__(self, seed, a, b, n,truncation=16):
+    def __init__(self, seed, a, b, n,truncation):
         super().__init__(seed, a, b, n,truncation)
-        self.bitlen = (a*n+b).bit_length()+1
+        if n&(n-1):
+            self.binary_field = False
+            self.bitlen = (a*n+b).bit_length()+1
+        else:
+            self.binary_field = True
+            self.bitlen = n.bit_length()-1
         
     def break_sat(self, outputs):
         """
         Thought this wont suck
         well this sucks too XD
         """
+        seed0 = BitVec('seed0',self.bitlen)
         seed = BitVec('seed',self.bitlen)
         s = Solver()
-        s.add(seed>=0)
-        s.add(seed<self.n)
+        if not self.binary_field:
+            s.add(ULT(seed,self.n))
+        s.add(UGE(seed,0))
+        s.add(seed0==seed)
         for v in outputs:
-            seed = simplify(URem(( (self.a * seed) + self.b), self.n))
+            if self.binary_field:
+                seed = self.a*seed+self.b
+            else:
+                seed = simplify(URem(( (self.a * seed) + self.b), self.n))
             s.add(v == LShR(seed,self.truncation))
 
         start_time, last_time = time(), time()
-        k = all_smt(s,[seed])
-        for m in k:
-        	time_taken = time()
-        	print(m[m.decls()[0]],time_taken-last_time)
-        	last_time = time_taken
-        print("total time taken :",time()-start_time)
+        SAT_seeds = []
+        for m in all_smt(s,[seed0]):
+            SAT_guessed_seed = m[m.decls()[0]]
+            print(f"{SAT_guessed_seed = }")
+            SAT_seeds.append(SAT_guessed_seed)
+        print("Total time taken(SAT) :",time()-start_time)
+        return SAT_seeds
 
     def break_sat_slow(self, outputs):
         """
         slow af piece of shit
         gets slower with increasing lengths of outputs
+        DON'T USE!
         """
         LCG = [BitVec(f'LCG[{i}]',self.bitlen) for i in range(len(outputs) + 1)]
         s = Solver()
@@ -88,56 +104,65 @@ class Breaker(truncated_lcg):
             s.add(outputs[i] == LShR(LCG[i + 1],16))
         
         start_time, last_time = time(), time()
-        k = all_smt(s,LCG)
-        for m in k:
-        	time_taken = time()
+        for m in all_smt(s,LCG):
         	vals = {str(i):m[i].as_long() for i in m}
         	vals = [vals[f'LCG[{i}]'] for i in range(len(m)) ]
-        	print(vals,time_taken-last_time)
-        	last_time = time_taken
+        	print(vals)
         print("total time taken :", time() - start_time)
-        
-    def find_poly(self, output, t=3):
-        pass
+
+    def shorten(self,u):
+        for i in range(u.nrows):
+            t = u[i, 0]
+            t %= self.n
+            if (2 * t >= self.n):
+                t -= self.n
+            u[i, 0] = t
 
     def break_lattice(self, outputs):
         o = len(outputs)
-        L = IntegerMatrix(o,o+1) # lattice
-        f,g = 1,1
+        start_time = time()
+        L = IntegerMatrix(o + 1, o + 1)
+        v = IntegerMatrix(o + 1, 1)
+        U = IntegerMatrix.identity(o+1)
+        f = 1
+        L[0, 0] = self.n
+        for i in range(1, o+1):
+            f *= self.a
+            L[i, 0] = f
+            L[i, i] = -1
+            v[i, 0] = (outputs[i-1] << self.truncation) - ((((self.a ** i) - 1) // (self.a - 1))*self.b)
+            
+        _ = LLL.reduction(L, U)
 
-        vec = outputs.copy()
+        u = (U * v)
+        self.shorten(u)
 
-        for i in range(o):
-            L[i, 0] = self.a * f
-            f = L[i, 0]
-            g += f
-            L[i, i + 1] = self.n
-            vec[i] -= self.b * (g)
-            vec[i] *= int(gmpy2.invert(2 ** self.truncation, self.n))
-            # vec[i] %= self.n # not sure if this should be done or not 
-        Lred = BKZ.reduction(L,BKZ.Param(5))
-
-        t = tuple(vec)
-        print(t,L,Lred)        
-        z = CVP.closest_vector(Lred,t)
-        print(z)
+        A = matrices.DomainMatrix.from_Matrix(sympy.Matrix(o + 1, o + 1, lambda i, j: L[i, j])).convert_to(sympy.QQ)
+        b = matrices.DomainMatrix.from_Matrix(sympy.Matrix(o + 1, 1, lambda i, j: u[i, 0])).convert_to(sympy.QQ)
+        M = (A.inv()*b).to_Matrix()
+        lattice_guessed_seed = M[0,0]%self.n
+        print(f"{lattice_guessed_seed = }")
+        print(f"Total time taken(LLL) : {time()-start_time}")
+        return lattice_guessed_seed
 
 
 if __name__ == "__main__":
     
-    p = getPrime(20)
-    a = random.randint(0, p - 1)
-    b = random.randint(0, p - 1)
-    seed = random.randint(0, p - 1)
-    num_out = 10
+    p = 2**48
+    a = random.randint(0,p-1)
+    b = random.randint(0,p-1)
+
+    seed_original = random.randint(0,p-1)
+    num_out = 2
+    truncation = 23
     
-    brkr = Breaker(seed, a, b, p)
+    print(f"{a = } {b = } {seed_original = }")
+
+    brkr = Breaker(seed_original, a, b, p, truncation)
     l = []
     for i in range(num_out):
         l.append(brkr.next())
-
-    print(a,b,p,seed)
-    brkr.break_sat(l)
-    brkr.break_sat_slow(l)
-    # brkr.break_lattice(l)
     
+    brkr.break_lattice(l)
+    brkr.break_sat(l)
+    # print(M)
