@@ -149,7 +149,7 @@ class Breaker(truncated_lcg):
 if __name__ == "__main__":
     
     p = 2**48
-    a = random.randint(0,p//2)*2+1
+    a = random.randint(0,p-1)
     b = random.randint(0,p-1)
 
     seed_original = random.randint(0,p-1)
