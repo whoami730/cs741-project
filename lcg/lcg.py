@@ -1,5 +1,7 @@
 import gmpy2
 from functools import *
+from random import *
+from Crypto.Util.number import *
 
 def gcd(*args):
     return reduce(gmpy2.gcd,args)
@@ -17,9 +19,9 @@ class lcg:
 
 class Breaker(lcg):
     def __init__(self,seed):
-        m = 2**32       # some constants, can vary them
-        a = 1664525
-        b = 1013904223
+        m = getPrime(32)       # some constants, can vary them
+        a = randint(0,m-1)
+        b = randint(0,m-1)
         super().__init__(seed,a,b,m)
 
     def break_lcg(self, ntimes):
@@ -37,7 +39,7 @@ class Breaker(lcg):
         b = (outputs[1]-a*outputs[0])%p
 
         assert all(j == (a*i + b)%p for i,j in zip(outputs,outputs[1:]))
-        print(f"p : {p} ; a : {a} ; b : {b}")
+        print(f"Recovered internal constants : p = {p} a = {a} b = {b}")
         return p,a,b
 
 b = Breaker(100)
