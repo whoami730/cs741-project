@@ -7,6 +7,8 @@ from fpylll import *
 from time import *
 import sympy
 import sympy.polys.matrices as matrices
+import sys
+sys.setrecursionlimit(100000)
 
 def all_smt(s, initial_terms):
     """
@@ -44,31 +46,42 @@ class truncated_lcg:
 
     def next(self):
         self.state = ((self.a * self.state) + self.b) % self.n
-        print(self.state)
+        # print(self.state)
         return (self.state >> self.truncation)
         
         
 class Breaker(truncated_lcg):
     def __init__(self, seed, a, b, n,truncation):
         super().__init__(seed, a, b, n,truncation)
-        self.bitlen = (a*n+b).bit_length()+2
+        if n&(n-1):
+            self.binary_field = False
+            self.bitlen = (a*n+b).bit_length()+1
+        else:
+            self.binary_field = True
+            self.bitlen = n.bit_length()-1
         
     def break_sat(self, outputs):
         """
         Thought this wont suck
         well this sucks too XD
         """
+        seed0 = BitVec('seed0',self.bitlen)
         seed = BitVec('seed',self.bitlen)
         s = Solver()
-        s.add(seed>=0)
-        s.add(seed<self.n)
+        if not self.binary_field:
+            s.add(ULT(seed,self.n))
+        s.add(UGE(seed,0))
+        s.add(seed0==seed)
         for v in outputs:
-            seed = simplify(URem(( (self.a * seed) + self.b), self.n))
+            if self.binary_field:
+                seed = self.a*seed+self.b
+            else:
+                seed = simplify(URem(( (self.a * seed) + self.b), self.n))
             s.add(v == LShR(seed,self.truncation))
 
         start_time, last_time = time(), time()
         SAT_seeds = []
-        for m in all_smt(s,[seed]):
+        for m in all_smt(s,[seed0]):
             SAT_guessed_seed = m[m.decls()[0]]
             print(f"{SAT_guessed_seed = }")
             SAT_seeds.append(SAT_guessed_seed)
@@ -136,12 +149,12 @@ class Breaker(truncated_lcg):
 if __name__ == "__main__":
     
     p = 2**48
-    a = 184115153590892
-    b = 23402086254269
+    a = random.randint(0,p//2)*2+1
+    b = random.randint(0,p-1)
 
-    seed_original = 237765462071002
-    num_out = 16
-    truncation = 24
+    seed_original = random.randint(0,p-1)
+    num_out = 2
+    truncation = 23
     
     print(f"{a = } {b = } {seed_original = }")
 
@@ -151,5 +164,5 @@ if __name__ == "__main__":
         l.append(brkr.next())
     
     brkr.break_lattice(l)
-    brkr.break_sat_slow(l)
+    brkr.break_sat(l)
     # print(M)
