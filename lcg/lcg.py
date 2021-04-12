@@ -2,6 +2,10 @@ import gmpy2
 from functools import *
 from random import *
 from Crypto.Util.number import *
+import os
+
+def urandbits(n):
+    return int.from_bytes(os.urandom(n//8),'big')
 
 def gcd(*args):
     return reduce(gmpy2.gcd,args)
@@ -39,8 +43,8 @@ class Breaker(lcg):
         b = (outputs[1]-a*outputs[0])%p
 
         assert all(j == (a*i + b)%p for i,j in zip(outputs,outputs[1:]))
-        print(f"Recovered internal constants : p = {p} a = {a} b = {b}")
+        print(f"Recovered internal constants from {len(outputs)} outputs : p = {p} a = {a} b = {b}")
         return p,a,b
 
-b = Breaker(100)
-b.break_lcg(6)
+b = Breaker(urandbits(32))
+b.break_lcg(10)
