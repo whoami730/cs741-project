@@ -15,7 +15,7 @@ def test_n_bit_k_steps(n: int, k: int):
     bm_opt = generate_lfsr(S, C, 2*k)
 
     if bm_opt == gen_opt:
-        print("No mismatch!!")
+        print(f"No mismatch for {n} bit seed. Matched {k} (random) output bits")
         print("Success!")
     else:
         mismatch = -1
