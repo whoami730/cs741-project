@@ -1,12 +1,11 @@
-import gmpy2
 from z3 import *
 import random
 
 from Crypto.Util.number import *
-from fpylll import *
-from time import *
-import sympy
-import sympy.polys.matrices as matrices
+from fpylll import IntegerMatrix, LLL
+from time import time
+from sympy import QQ, Matrix
+from sympy.polys.matrices import DomainMatrix
 import sys
 sys.setrecursionlimit(100000)
 
@@ -74,7 +73,7 @@ class Breaker(truncated_lcg):
         s.add(seed0==seed)
         for v in outputs:
             if self.binary_field:
-                seed = self.a*seed+self.b
+                seed = simplify(self.a*seed+self.b)
             else:
                 seed = simplify(URem(( (self.a * seed) + self.b), self.n))
             s.add(v == LShR(seed,self.truncation))
@@ -83,7 +82,8 @@ class Breaker(truncated_lcg):
         SAT_seeds = []
         for m in all_smt(s,[seed0]):
             SAT_guessed_seed = m[m.decls()[0]]
-            print(f"{SAT_guessed_seed = }")
+            print(f"{SAT_guessed_seed = }",time()-last_time)
+            last_time=time()
             SAT_seeds.append(SAT_guessed_seed)
         print("Total time taken(SAT) :",time()-start_time)
         return SAT_seeds
@@ -112,23 +112,19 @@ class Breaker(truncated_lcg):
 
     def shorten(self,u):
         for i in range(u.nrows):
-            t = u[i, 0]
-            t %= self.n
-            if (2 * t >= self.n):
-                t -= self.n
-            u[i, 0] = t
+            u[i,0] %= self.n
+            if 2*u[i,0] >=self.n:
+                u[i,0]-=self.n
 
     def break_lattice(self, outputs):
-        o = len(outputs)
+        k = len(outputs)
         start_time = time()
-        L = IntegerMatrix(o + 1, o + 1)
-        v = IntegerMatrix(o + 1, 1)
-        U = IntegerMatrix.identity(o+1)
-        f = 1
+        L = IntegerMatrix(k + 1, k + 1)
+        v = IntegerMatrix(k + 1, 1)
+        U = IntegerMatrix.identity(k+1)
         L[0, 0] = self.n
-        for i in range(1, o+1):
-            f *= self.a
-            L[i, 0] = f
+        for i in range(1, k+1):
+            L[i, 0] = self.a**i
             L[i, i] = -1
             v[i, 0] = (outputs[i-1] << self.truncation) - ((((self.a ** i) - 1) // (self.a - 1))*self.b)
             
@@ -137,8 +133,8 @@ class Breaker(truncated_lcg):
         u = (U * v)
         self.shorten(u)
 
-        A = matrices.DomainMatrix.from_Matrix(sympy.Matrix(o + 1, o + 1, lambda i, j: L[i, j])).convert_to(sympy.QQ)
-        b = matrices.DomainMatrix.from_Matrix(sympy.Matrix(o + 1, 1, lambda i, j: u[i, 0])).convert_to(sympy.QQ)
+        A = DomainMatrix.from_Matrix(Matrix(k + 1, k + 1, lambda i, j: L[i, j])).convert_to(QQ)
+        b = DomainMatrix.from_Matrix(Matrix(k + 1, 1, lambda i, j: u[i, 0])).convert_to(QQ)
         M = (A.inv()*b).to_Matrix()
         lattice_guessed_seed = M[0,0]%self.n
         print(f"{lattice_guessed_seed = }")
@@ -151,10 +147,9 @@ if __name__ == "__main__":
     p = 2**48
     a = random.randint(0,p-1)
     b = random.randint(0,p-1)
-
     seed_original = random.randint(0,p-1)
-    num_out = 2
-    truncation = 23
+    num_out = 8
+    truncation = 40
     
     print(f"{a = } {b = } {seed_original = }")
 
@@ -166,3 +161,26 @@ if __name__ == "__main__":
     brkr.break_lattice(l)
     brkr.break_sat(l)
     # print(M)
+
+
+# def recover_truncated_lcg(p,a,b,h,knowns):
+#     K = {0:b}
+#     for n in range(1, 20):
+#         K[n] = K[n-1] + b*a^(n)
+
+#     # Y = y_i*2^40 - K
+#     Y = [ ((knowns[i] << h) - K[i]) % p for i in range(len(knowns)) ]
+
+#     L=Matrix(ZZ, 8, 8)
+#     L[0,0] = p
+#     for i in range(1,8):
+#         L[i,0] = a^i
+#         L[i,i] = -1 
+#     B = L.LLL()
+#     W1 = B * vector(Y)
+#     W2 = vector([ round(RR(w) / p) * p - w for w in W1 ])    
+#     Z = list(B.solve_right(W2))
+
+#     # s_i = y_i*2^40 + z_i
+#     s1 = (int(knowns[0]) << 40) | int(Z[0])    
+#     return s1, Z  
