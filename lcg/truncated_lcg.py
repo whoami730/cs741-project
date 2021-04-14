@@ -7,8 +7,11 @@ from fpylll import *
 from time import *
 import sympy
 import sympy.polys.matrices as matrices
-import sys
-sys.setrecursionlimit(100000)
+
+set_param('parallel.enable', True)
+set_param('parallel.threads.max', 32)
+set_param('sat.local_search_threads', 4)
+set_param('sat.threads', 4)
 
 def all_smt(s, initial_terms):
     """
@@ -51,64 +54,62 @@ class truncated_lcg:
         
         
 class Breaker(truncated_lcg):
-    def __init__(self, seed, a, b, n,truncation):
-        super().__init__(seed, a, b, n,truncation)
-        if n&(n-1):
-            self.binary_field = False
-            self.bitlen = (a*n+b).bit_length()+1
-        else:
-            self.binary_field = True
-            self.bitlen = n.bit_length()-1
+    def __init__(self, seed, a, b, n, truncation, **kwargs):
+        super().__init__(seed, a, b, n, truncation)
+        self.n_bitlen = n.bit_length()
+        self.known_a: bool = kwargs.get('known_a', True)
+        self.known_b: bool = kwargs.get('known_b', True)
+        self.known_n: bool = kwargs.get('known_n', True)
         
     def break_sat(self, outputs):
         """
         Thought this wont suck
         well this sucks too XD
         """
-        seed0 = BitVec('seed0',self.bitlen)
-        seed = BitVec('seed',self.bitlen)
+        seed0 = BitVec('seed0', 2*self.n_bitlen)
+        seed = seed0
         s = Solver()
-        if not self.binary_field:
-            s.add(ULT(seed,self.n))
-        s.add(UGE(seed,0))
-        s.add(seed0==seed)
+
+        if (self.known_a):
+            a = BitVecVal(self.a, self.n_bitlen)
+        else:
+            a = BitVec('a', self.n_bitlen)
+            
+        if (self.known_b):
+            b = BitVecVal(self.b, self.n_bitlen)
+        else:
+            b = BitVec('b', self.n_bitlen)
+
+        if (self.known_n):
+            n = BitVecVal(self.n, self.n_bitlen)
+        else:
+            n = BitVec('n', self.n_bitlen)
+
+        s.add(ULT(seed0,ZeroExt(self.n_bitlen,n)),ULT(a,n),ULT(b,n),UGE(seed0,0),UGE(a,0),UGE(b,0))
         for v in outputs:
-            if self.binary_field:
-                seed = self.a*seed+self.b
-            else:
-                seed = simplify(URem(( (self.a * seed) + self.b), self.n))
+            seed = simplify(URem(ZeroExt(self.n_bitlen,a)*seed+ZeroExt(self.n_bitlen,b), ZeroExt(self.n_bitlen,n)))
             s.add(v == LShR(seed,self.truncation))
 
         start_time, last_time = time(), time()
-        SAT_seeds = []
-        for m in all_smt(s,[seed0]):
-            SAT_guessed_seed = m[m.decls()[0]]
-            print(f"{SAT_guessed_seed = }")
-            SAT_seeds.append(SAT_guessed_seed)
-        print("Total time taken(SAT) :",time()-start_time)
-        return SAT_seeds
+        terms = [seed0,a,b,n]
+        if not self.known_a:
+            terms.append(a)
+        if not self.known_b:
+            terms.append(b)
+        if not self.known_n:
+            terms.append(n)
 
-    def break_sat_slow(self, outputs):
-        """
-        slow af piece of shit
-        gets slower with increasing lengths of outputs
-        DON'T USE!
-        """
-        LCG = [BitVec(f'LCG[{i}]',self.bitlen) for i in range(len(outputs) + 1)]
-        s = Solver()
-        for i in LCG:
-        	s.add(i<self.n)
-        	s.add(i>=0)
-        for i in range(len(outputs)):
-            s.add(LCG[i + 1] == (URem(( (self.a * LCG[i]) + self.b), self.n)))
-            s.add(outputs[i] == LShR(LCG[i + 1],16))
-        
-        start_time, last_time = time(), time()
-        for m in all_smt(s,LCG):
-        	vals = {str(i):m[i].as_long() for i in m}
-        	vals = [vals[f'LCG[{i}]'] for i in range(len(m)) ]
-        	print(vals)
-        print("total time taken :", time() - start_time)
+        guess = []
+
+        for m in all_smt(s,terms):
+            SAT_guessed_seed = m[seed0]
+            A = m.eval(a)
+            B = m.eval(b)
+            N = m.eval(n)
+            print(f"{SAT_guessed_seed = } {A = } {B = } {N = }")
+            guess.append((SAT_guessed_seed,A,B,N))
+        print("Total time taken(SAT) :",time()-start_time)
+        return guess
 
     def shorten(self,u):
         for i in range(u.nrows):
@@ -156,13 +157,12 @@ if __name__ == "__main__":
     num_out = 2
     truncation = 23
     
-    print(f"{a = } {b = } {seed_original = }")
+    print(f"{seed_original = } {a = } {b = } {p = }")
 
-    brkr = Breaker(seed_original, a, b, p, truncation)
+    brkr = Breaker(seed_original, a, b, p, truncation,known_a=True,known_b=True,known_n=True)
     l = []
     for i in range(num_out):
         l.append(brkr.next())
     
     brkr.break_lattice(l)
     brkr.break_sat(l)
-    # print(M)
