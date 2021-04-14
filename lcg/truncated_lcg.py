@@ -1,12 +1,13 @@
-import gmpy2
 from z3 import *
 import random
 
 from Crypto.Util.number import *
-from fpylll import *
-from time import *
-import sympy
-import sympy.polys.matrices as matrices
+from fpylll import IntegerMatrix, LLL
+from time import time
+from sympy import QQ, Matrix
+from sympy.polys.matrices import DomainMatrix
+import sys
+sys.setrecursionlimit(100000)
 
 set_param('parallel.enable', True)
 set_param('parallel.threads.max', 32)
@@ -66,8 +67,8 @@ class Breaker(truncated_lcg):
         Thought this wont suck
         well this sucks too XD
         """
-        seed0 = BitVec('seed0', 2*self.n_bitlen)
-        seed = seed0
+        seed0 = BitVec('seed0', self.n_bitlen)
+        seed = ZeroExt(self.n_bitlen,seed0)
         s = Solver()
 
         if (self.known_a):
@@ -85,7 +86,7 @@ class Breaker(truncated_lcg):
         else:
             n = BitVec('n', self.n_bitlen)
 
-        s.add(ULT(seed0,ZeroExt(self.n_bitlen,n)),ULT(a,n),ULT(b,n),UGE(seed0,0),UGE(a,0),UGE(b,0))
+        s.add(ULT(seed0,n),ULT(a,n),ULT(b,n),UGE(seed0,0),UGE(a,0),UGE(b,0))
         for v in outputs:
             seed = simplify(URem(ZeroExt(self.n_bitlen,a)*seed+ZeroExt(self.n_bitlen,b), ZeroExt(self.n_bitlen,n)))
             s.add(v == LShR(seed,self.truncation))
@@ -113,33 +114,28 @@ class Breaker(truncated_lcg):
 
     def shorten(self,u):
         for i in range(u.nrows):
-            t = u[i, 0]
-            t %= self.n
-            if (2 * t >= self.n):
-                t -= self.n
-            u[i, 0] = t
+            u[i,0] %= self.n
+            if 2*u[i,0] >=self.n:
+                u[i,0]-=self.n
 
     def break_lattice(self, outputs):
-        o = len(outputs)
+        k = len(outputs)
         start_time = time()
-        L = IntegerMatrix(o + 1, o + 1)
-        v = IntegerMatrix(o + 1, 1)
-        U = IntegerMatrix.identity(o+1)
-        f = 1
-        L[0, 0] = self.n
-        for i in range(1, o+1):
-            f *= self.a
-            L[i, 0] = f
+        L = IntegerMatrix(k, k)
+        v = IntegerMatrix(k, 1)
+        U = IntegerMatrix.identity(k)
+        for i in range(k):
+            L[i, 0] = self.a**i
             L[i, i] = -1
-            v[i, 0] = (outputs[i-1] << self.truncation) - ((((self.a ** i) - 1) // (self.a - 1))*self.b)
+            v[i, 0] = (((1 - (self.a ** i)) // (self.a - 1))*self.b) % self.n
             
         _ = LLL.reduction(L, U)
 
         u = (U * v)
         self.shorten(u)
 
-        A = matrices.DomainMatrix.from_Matrix(sympy.Matrix(o + 1, o + 1, lambda i, j: L[i, j])).convert_to(sympy.QQ)
-        b = matrices.DomainMatrix.from_Matrix(sympy.Matrix(o + 1, 1, lambda i, j: u[i, 0])).convert_to(sympy.QQ)
+        A = DomainMatrix.from_Matrix(Matrix(k + 1, k + 1, lambda i, j: L[i, j])).convert_to(QQ)
+        b = DomainMatrix.from_Matrix(Matrix(k + 1, 1, lambda i, j: u[i, 0])).convert_to(QQ)
         M = (A.inv()*b).to_Matrix()
         lattice_guessed_seed = M[0,0]%self.n
         print(f"{lattice_guessed_seed = }")
@@ -152,14 +148,13 @@ if __name__ == "__main__":
     p = 2**48
     a = random.randint(0,p-1)
     b = random.randint(0,p-1)
-
     seed_original = random.randint(0,p-1)
-    num_out = 2
-    truncation = 23
+    num_out = 16
+    truncation = 0
     
     print(f"{seed_original = } {a = } {b = } {p = }")
 
-    brkr = Breaker(seed_original, a, b, p, truncation,known_a=True,known_b=True,known_n=True)
+    brkr = Breaker(seed_original, a, b, p, truncation,known_a=False,known_b=False,known_n=True)
     l = []
     for i in range(num_out):
         l.append(brkr.next())
