@@ -127,20 +127,39 @@ class Breaker(truncated_lcg):
         for i in range(k):
             L[i, 0] = self.a**i
             L[i, i] = -1
-            v[i, 0] = (((1 - (self.a ** i)) // (self.a - 1))*self.b) % self.n
+            v[i, 0] = -(outputs[i] << self.truncation) % self.n
+        L[0,0] = self.n
+            
+        v = L * v
+        
+        for i in range(k):
+            v[i, 0] += ((1 - self.a ** i) // (self.a - 1)) * self.b
+            v[i, 0] %= self.n
             
         _ = LLL.reduction(L, U)
 
         u = (U * v)
         self.shorten(u)
 
-        A = DomainMatrix.from_Matrix(Matrix(k + 1, k + 1, lambda i, j: L[i, j])).convert_to(QQ)
-        b = DomainMatrix.from_Matrix(Matrix(k + 1, 1, lambda i, j: u[i, 0])).convert_to(QQ)
-        M = (A.inv()*b).to_Matrix()
-        lattice_guessed_seed = M[0,0]%self.n
-        print(f"{lattice_guessed_seed = }")
+        A = DomainMatrix.from_Matrix(Matrix(k, k, lambda i, j: L[i, j])).convert_to(QQ)
+        b = DomainMatrix.from_Matrix(Matrix(k, 1, lambda i, j: u[i, 0])).convert_to(QQ)
+        M = (A.inv() * b).to_Matrix()
+
+        next_st = (outputs[0] << self.truncation) | int(M[0, 0] % self.n)
+        
+        seed = BitVec('seed', self.n_bitlen)
+        
+        s = Solver()
+        s.add(ULT(seed,self.n),next_st == simplify(URem(self.a * ZeroExt(self.n_bitlen, seed) + self.b, self.n)))
+        
+        guess = []
+
+        for m in all_smt(s, [seed]):
+            lattice_guessed_seed = m[seed]
+            print(f"{lattice_guessed_seed = }")
+            guess.append(lattice_guessed_seed)
         print(f"Total time taken(LLL) : {time()-start_time}")
-        return lattice_guessed_seed
+        return guess
 
 
 if __name__ == "__main__":
@@ -149,8 +168,8 @@ if __name__ == "__main__":
     a = random.randint(0,p-1)
     b = random.randint(0,p-1)
     seed_original = random.randint(0,p-1)
-    num_out = 16
-    truncation = 0
+    num_out = 6
+    truncation = 4
     
     print(f"{seed_original = } {a = } {b = } {p = }")
 
