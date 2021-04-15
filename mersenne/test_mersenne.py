@@ -159,14 +159,18 @@ def test_python_seed_recovery_fast():
     print("success")
 
 def state_recovery_rand():
+    """
+    state recovery using 
+    """
     rand_seed = urandbits(1234)
     random.seed(rand_seed)
-    state_orig = random.getstate()[1][:-1]
+    state_orig = list(random.getstate()[1][:-1])
     outputs = [random.random() for i in range(624)]
     b = BreakerPy()
     recovered_state = b.state_recovery_rand(outputs)
-    return recovered_state, state_orig
-
+    print(sum(i==j for i,j in zip(recovered_state,state_orig)))
+    assert recovered_state == state_orig
+    print("success")
 
 
 
