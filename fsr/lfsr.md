@@ -51,10 +51,12 @@ Later on we tried and understood the Berlekamp-Massey algorithm. The original al
 
 Than we tried coding it in python and with proper understanding of the algorithm it was not much effort to test and debug. Encoding it in Z3 was a challenge. 
 
-After couple of trial and erros and after much brainstorming we  modeled lfsr. The performance metrics are as follows:
+After couple of trial and erros and after much brainstorming we  modeled lfsr. Berlekamp Massey algorithm successfully pridicted 2048-bit seed within 1 second. 
 
+Geffe's generator can predict three 20 bit LFSRs in 197.15s using only 256 output bits. 20 bit 128 known output in 1638s
 
 ## References: 
-- [Wikipedia](https://en.wikipedia.org/wiki/Berlekamp%E2%80%93Massey_algorithm)
+- [Wikipedia - Berlekamp Massey Algorithm](https://en.wikipedia.org/wiki/Berlekamp%E2%80%93Massey_algorithm)
 - [This Blog Post](https://bell0bytes.eu/linear-feedback-shift-registers/)
 - [BMA - IIT Kharagpur](https://cse.iitkgp.ac.in/~debdeep/courses_iitkgp/Crypto/slides/BMA.pdf)
+- [Wikipedia - Correlation Attack](https://en.wikipedia.org/wiki/Berlekamp%E2%80%93Massey_algorithm)
