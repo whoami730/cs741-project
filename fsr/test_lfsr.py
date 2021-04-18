@@ -1,5 +1,5 @@
 import time, random
-from lfsr import *
+from .lfsr import *
 
 def test_n_bit_k_steps(n: int, k: int):
     # Generate seed and combination polynomial and generate some eandom bits
@@ -10,8 +10,9 @@ def test_n_bit_k_steps(n: int, k: int):
     gen_opt = generate_lfsr(list(map(int,seed)), list(map(int,feedback_poly)), 2*k)
 
     # Test bm algo
+    start_time = time.time()
     L, C, S = bm_algo(gen_opt[:k//2])
-
+    print("Time taken to recover seed: ", time.time() - start_time)
     bm_opt = generate_lfsr(S, C, 2*k)
 
     if bm_opt == gen_opt:
