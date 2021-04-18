@@ -51,6 +51,9 @@ Later on we tried and understood the Berlekamp-Massey algorithm. The original al
 
 Than we tried coding it in python and with proper understanding of the algorithm it was not much effort to test and debug. Encoding it in Z3 was a challenge. 
 
+After couple of trial and erros and after much brainstorming we  modeled lfsr. The performance metrics are as follows:
+
+
 ## References: 
 - [Wikipedia](https://en.wikipedia.org/wiki/Berlekamp%E2%80%93Massey_algorithm)
 - [This Blog Post](https://bell0bytes.eu/linear-feedback-shift-registers/)

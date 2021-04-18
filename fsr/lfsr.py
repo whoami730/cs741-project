@@ -13,8 +13,8 @@ class LFSR:
 
     def __init__(self, seed, poly):
         assert len(seed) == len(poly), "Error: Seed and taps poly  should be of same length"
-        self._seed = seed.copy()
-        self._comb_poly = poly[::-1]
+        self._seed = seed.copy()      # MSB to LSB  
+        self._comb_poly = poly[::-1]  # LSB to MSB
     
     def next_bit(self):
         """ Generate next output bit """
@@ -27,6 +27,7 @@ class LFSR:
     def get_lfsr(self, steps):
         """ Get next `steps` number of output bits """
         opt = [self.next_bit() for _ in range(steps)]
+        return opt
 
 class Berlekamp_Massey:
     """ Berlekamp - Massey algo: PYTHON IMPLEMENTATION
@@ -59,14 +60,15 @@ class Berlekamp_Massey:
                     B = c_temp.copy()
             n += 1
         self._L = L
-        self._C = C
-        self._seed = S[:L][::-1]
+        self._C = C[::-1]
+        self._seed = S[:L]
+        assert len(self._seed) + 1 == len(self._C)
 
     def get_seed(self):
         return self._seed
 
     def get_taps(self):
-        return self._C
+        return self._C[1:]
 
     def get_degree(self):
         return self._L
@@ -105,7 +107,7 @@ class Geffe:
         self._lfsrs = [LFSR(self._l1,c1), LFSR(self._l2, c2), LFSR(self._l3, c3)]
     
     def next_bit(self):
-        bits = [lfsr.next_bit() for lfsr in self.lfsrs]
+        bits = [lfsr.next_bit() for lfsr in self._lfsrs]
         return (bits[0] & bits[1]) | ((~bits[0]) & bits[2])
 
     def solve(self, opt):
@@ -128,16 +130,15 @@ class Geffe:
             # lfsr = 
             opt = []
 
-opt = [int(i) for i in input("Enter the seqn, MSB to LSB: ").strip()]
+# opt = [int(i) for i in input("Enter the seqn, MSB to LSB: ").strip()]
 # ans = UnLFSR_Z3(opt).solve()
 # print(ans[0])
 # print(ans[1])
-n = 69
-c1 = [int(i) for i in '0000000000000100111']
-c2 = [int(i) for i in '000000000000000000000100111']
-c3 = [int(i) for i in '00000000000000000101011']
+# c1 = [int(i) for i in '0000000000000100111']
+# c2 = [int(i) for i in '000000000000000000000100111']
+# c3 = [int(i) for i in '00000000000000000101011']
 
-print(Geffe(c1,c2,c3).solve(opt))
+# print(Geffe(c1,c2,c3).solve(opt))
 
 # # Jeff's gen in python
 # l1 = lambda key: LFSR( list(map(int,"{:019b}".format(key))) ,[19,18,17,14])
