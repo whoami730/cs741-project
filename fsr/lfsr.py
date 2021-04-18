@@ -2,55 +2,40 @@
 
 from functools import reduce
 from z3 import *
+import tqdm
 
-class LFSR_python:
-    """ Normal LFSR impl with pythonic inputs. Everything is in `GF(2)`"""
+class LFSR:
+    """ Normal LFSR impl with pythonic inputs. Everything is in `GF(2)`
+    n-bit LFSR defined by given feedback polynomial
+    seed = MSB to LSB list of bits
+    feedback_polynomial = MSB to LSB list of bits
+    """
 
-    #NOTE: The use of 1 in feedback_polynomial is for the first bit. the bit that we are going to output.
-    def generate_lfsr(self, seed: list, feedback_polynomial: list, steps: int):
-        """ n-bit LFSR defined by given feedback polynomial
-        seed = MSB to LSB list of bits
-        feedback_polynomial = MSB to LSB list of bits
-        """
-
-        # Check that n bit seed have n-degree feeback polynomial.
-        if len(seed) != len(feedback_polynomial) - 1:
-            raise Exception("Number of bits in the seed and the degree of feedback polynomial should be same")
-        
-        # Check if 1st and last bit in feedback poly is 1. It should be 1
-        if not (feedback_polynomial[0] or feedback_polynomial[-1]):
-            raise Exception("0th and nth degree of feedback polynomial should be 1!! for n-bit lfsr")
-        
-        lfsr = seed.copy()                      # Initial seed of lfsr
-        bit = 0                                 # Initial o/p of lfsr
-        n_bit = len(seed)                       # num of bits of feeback polynomial
-        opt = []                                # 0th index is MSB... nth index is LSB
-
-        while steps > 0:
-            # Compute the leftmost bit using the (taps of) feeback polynomial
-            conn_poly = [i&j for i,j in zip(lfsr[::-1],feedback_polynomial)]
-            bit = reduce(lambda x,y: x^y, conn_poly,0)
-            opt.append(lfsr.pop())
-            lfsr.insert(0,bit)
-            steps -= 1
-        
-        # Seed for next cycle is current value of lfsr
-        # seed = lfsr
-        # print(f"Output: {''.join(map(str,opt))}")
+    def __init__(self, seed, poly):
+        assert len(seed) == len(poly), "Error: Seed and taps poly  should be of same length"
+        self._seed = seed.copy()
+        self._comb_poly = poly[::-1]
+    
+    def next_bit(self):
+        """ Generate next output bit """
+        tapped = [self._seed[i] for i,j in enumerate(self._comb_poly) if j == 1]
+        xored = reduce(lambda x,y: x^y, tapped)
+        opt = self._seed.pop(0)
+        self._seed.append(xored)
         return opt
+    
+    def get_lfsr(self, steps):
+        """ Get next `steps` number of output bits """
+        opt = [self.next_bit() for _ in range(steps)]
 
-    # i/p - o/p code for LFSR
-    # print("\nLeftmost bit is MSB")
-    # sd = [int(i) for i in input("Seed for LFSR: ").strip()]
-    # fdb = [int(i) for i in input("Feedback Ploynomial: ").strip()]
-    # st = int(input("Steps: ").strip())
-    # generate_lfsr(sd,fdb,st)
+class Berlekamp_Massey:
+    """ Berlekamp - Massey algo: PYTHON IMPLEMENTATION
+    i/p:    S:  `list` of 0s and 1s, Sn, Sn-1, Sn-2, ... S1, S0.
+    o/p:   min degree of C, Feedback Polynomial, anything else that we want 
+    """
 
-    def bm_algo(self, S):
-        """ Berlekamp - Massey algo: PYTHON IMPLEMENTATION
-        i/p:    S:  `list` of 0s and 1s, Sn, Sn-1, Sn-2, ... S1, S0.
-        o/p:   min degree of C, Feedback Polynomial, anything else that we want 
-        """
+    def __init__(self, S):
+        self.S = S
         C = [1]     # Connection polynomial. The one that generates next o/p bit. 1, C1, C2, ..., CL.
         L = 0       # Minimal size of LFSR at o/p
         m = -1      # num iterations since L and B were updated.
@@ -73,38 +58,18 @@ class LFSR_python:
                     m = n
                     B = c_temp.copy()
             n += 1
-        return (L,C[::-1],S[:L][::-1])
+        self._L = L
+        self._C = C
+        self._seed = S[:L][::-1]
 
-# s = [int(i) for i in input("Enter the seqn, MSB to LSB form: ").strip()]
-# print("L (minimal length), C (Feedback polynomial MSB to LSB), Seed(MSB to LSB): ")
-# l,c,ss = LFSR_python().bm_algo(s)
-# print(l,''.join(map(str,c)),''.join(map(str,ss)))
-# # Output 2*len(s) of random bits using the above feedback_poly and seed.
-# print('\n2*len(i/p) LFSR bits using the above seen and feedback polynomial')
-# generate_lfsr(ss,c,2*len(s))
+    def get_seed(self):
+        return self._seed
 
-# Z3 LFSR functoin
-class LFSR_z3:
-    """ LFSR for z3. i.e. All the input are of z3 datatypes. """
-    def __init__(self, seed, comb_poly):
-        assert len(seed) == len(comb_poly), "Error: Length of seed and combination polynomial should be same."
-        # List of bitVecs, Sn... S0
-        self._seed = seed.copy()
-        # List of taps. C0, ..., Cn
-        self._poly = comb_poly.copy()
+    def get_taps(self):
+        return self._C
 
-    def _next_inp(self, lst_bitvec):
-        return reduce(lambda x,y: x^y, lst_bitvec)
-    
-    def _get_next_bit(self):
-        next_inp = self._next_inp([self._seed[i] for i in self._poly if i == 1])
-        opt = self._seed.pop(0)
-        self._seed.append(next_inp)
-        return opt
-    
-    def next_bit(self):
-        return self._get_next_bit()
-
+    def get_degree(self):
+        return self._L
 
 class UnLFSR_Z3:
     """ Similar to berlekamp in the sense that it finds the seed and the comb poly using z3 solver. """
@@ -112,12 +77,12 @@ class UnLFSR_Z3:
     def __init__(self, opt):
         """ opt is list of 0s and 1s. 1st bit 1st """
         self._opt = opt.copy()
-        self._seed = [BitVec(f'k_{i}',1) for i in range(22)]
-        self._poly = [BitVec(f'c_{i}',1) for i in range(22)]
+        self._seed = [BitVec(f'k_{i}',1) for i in range(len(opt)//2)]
+        self._poly = [BitVec(f'c_{i}',1) for i in range(len(opt)//2)]
 
     def solve(self):
         s = Solver()
-        lfsr = LFSR_z3(self._seed, self._poly)
+        lfsr = LFSR(self._seed, self._poly)
         for i in range(len(self._opt)):
             s.add(lfsr.next_bit() == self._opt[i])
         if s.check() == sat:
@@ -129,13 +94,15 @@ class UnLFSR_Z3:
         else:
             print("ERROR: unsolvable... unpossible!!")
 
-class Jeff_z3:
+class Geffe:
     """ Jeff Generator's Solver in z3. We need to know  the combination polynomial beforehand """
+
     def __init__(self, c1, c2, c3):
-        self.l1 = [BitVec(f'l1_{i}',1) for i in range(len(c1))]
-        self.l2 = [BitVec(f'l2_{i}',1) for i in range(len(c2))]
-        self.l3 = [BitVec(f'l3_{i}',1) for i in range(len(c3))]
-        self.lfsrs = [LFSR_z3(self.l1,c1), LFSR_z3(self.l2, c2), LFSR_z3(self.l3, c3)]
+        self._l1 = [BitVec(f'l1_{i}',1) for i in range(len(c1))]
+        self._l2 = [BitVec(f'l2_{i}',1) for i in range(len(c2))]
+        self._l3 = [BitVec(f'l3_{i}',1) for i in range(len(c3))]
+        self._c1, self._c2, self._c3 = c1, c2, c3
+        self._lfsrs = [LFSR(self._l1,c1), LFSR(self._l2, c2), LFSR(self._l3, c3)]
     
     def next_bit(self):
         bits = [lfsr.next_bit() for lfsr in self.lfsrs]
@@ -151,9 +118,15 @@ class Jeff_z3:
             one = ''.join(str(model[k]) for k in self.l1)
             two = ''.join(str(model[k]) for k in self.l2)
             thr = ''.join(str(model[k]) for k in self.l3)
-            return one,two,thr
+            return (one,two,thr)
         else:
             return None
+    
+    def solve_bruteforce(self, lo, hi, l , corr):
+        max_v, max_k = 0, 0
+        for k in tqdm(range(lo, hi)):
+            # lfsr = 
+            opt = []
 
 opt = [int(i) for i in input("Enter the seqn, MSB to LSB: ").strip()]
 # ans = UnLFSR_Z3(opt).solve()
@@ -164,7 +137,7 @@ c1 = [int(i) for i in '0000000000000100111']
 c2 = [int(i) for i in '000000000000000000000100111']
 c3 = [int(i) for i in '00000000000000000101011']
 
-print(Jeff_z3(c1,c2,c3).solve(opt))
+print(Geffe(c1,c2,c3).solve(opt))
 
 # # Jeff's gen in python
 # l1 = lambda key: LFSR( list(map(int,"{:019b}".format(key))) ,[19,18,17,14])
