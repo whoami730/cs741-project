@@ -1,88 +1,89 @@
-
 ## Mersenne Twister (19937)
-Mersenne Twister is by far the most widely used general-purpose PRNG, which derives its name from the fact that its period is the mersenne prime $2^{19937} -1$  
+Mersenne Twister is by far the most widely used general-purpose PRNG, which derives its name from the fact that its period is the Mersenne prime $2^{19937} -1$  
 
 It is the default PRNG in Dyalog APL, Microsoft Excel, GAUSS, GLib, GNU Multiple Precision Arithmetic Library, GNU Octave, GNU Scientific Library, gretl, IDL, Julia,CMU Common Lisp, Embeddable Common Lisp, Steel Bank Common Lisp, Maple,MATLAB, Free Pascal, PHP, Python,R,Ruby,SageMath, Scilab, Stata, SPSS, SAS, Apache Commons,  standard C++ (since C++11), Mathematica. Add-on implementations are provided in many program libraries, including the Boost C++ Libraries, the CUDA Library, and the NAG Numerical Library.
 
 ### Algorithmic Details
-The Mersenne Twister algorithm is based on a matrix linear recurrence over a finite binary field $F_2$. The algorithm is a twisted generalised feedback shift register (twisted GFSR, or TGFSR) of rational normal form, with state bit reflection and tempering. 
+The Mersenne Twister algorithm is based on a matrix linear recurrence over a finite binary field $F_2$. The algorithm is a twisted generalised feedback shift register (twisted GFSR, or TGFSR) of rational normal form, with state bit reflection and tampering. 
 
 The internal state is defined by a sequence of $n=624$, 32-bit registers ($w$)  
 
 $$x_{k+n} \to x_{k+m} \oplus (( x_k^{u} \| x_{k+1}^{l})A)$$
-To compensate for reduced dimensionality of equidistribution, the state is cascaded with tampering transform (to improve the equidistribution) to produce the output
+To compensate for reduced dimensionality of equidistribution, the state is cascaded with tampering transform (to improve the equidistribution) to produce the outputm
 
-$$y \to x \oplus(( x >> u)\&d)$$
-$$y \to y \oplus(( y << s)\&b)$$
-$$y \to y \oplus(( y << t)\&c)$$
-$$z \to y \oplus( y >> l)$$
+$$y \to x \oplus(( x \gg u)\&d)$$
+$$y \to y \oplus(( y \ll s)\&b)$$
+$$y \to y \oplus(( y \ll t)\&c)$$
+$$z \to y \oplus( y \gg l)$$
 
 The computed $z$ is returned by the algorithm
 where the choice of constants is as follows
+```python
+    w, n, m, r = 32, 624, 397, 31
+    a = 0x9908B0DF
+    u, d = 11, 0xFFFFFFFF
+    s, b = 7, 0x9D2C5680
+    t, c = 15, 0xEFC60000
+    l = 18
+    f = 1812433253 
 ```
-(w, n, m, r) = (32, 624, 397, 31)
-a = 0x9908B0DF
-(u, d) = (11, 0xFFFFFFFF)
-(s, b) = (7, 0x9D2C5680)
-(t, c) = (15, 0xEFC60000)
-l = 18
-f = 1812433253 
-```
+
+\pagebreak
 
 ### Initialization
 The state needed for a Mersenne Twister implementation is an array of $n$ values of $w$ bits each. To initialize the array, a w-bit seed value is used to supply $x_0$ through $x_{n-1}$ by setting $x_0$ to the seed value and thereafter setting
 
-$$x_i = f \times (x_{i-1} \oplus (x_{i-1} >> (w-2))) + i$$
+$$x_i = f \times (x_{i-1} \oplus (x_{i-1} \gg (w-2))) + i$$
 
 for $i$ from 1 to n-1. The first value the algorithm then generates is based on $x_n$
 
 
-![](merstw.gif)
+![](merstw2.gif)
 
-While implementing, we need to consider only three things
+While implementing, we need to consider only three things   
+
 1. State initialization i.e. seeding
 ```python
-def seed_mt(seed):
-    MT[0] = seed
-    index = n
-    for i in range(1, n):
-        temp = f * (MT[i - 1] ^ (MT[i - 1] >> (w - 2))) + i
-        MT[i] = temp & ((1 << w) - 1)
-```
+    def seed_mt(seed):
+        MT[0] = seed
+        index = n
+        for i in range(1, n):
+            temp = f * (MT[i - 1] ^ (MT[i - 1] >> (w - 2))) + i
+            MT[i] = temp & ((1 << w) - 1)
+```  
 2. The `twist` operation to produce next 624 state registers by "twisting" the current state of 624 registers
 ```python
-def twist():
-    for i in range(n):
-        x = (MT[i] & upper_mask) + (MT[(i + 1) % n] & lower_mask)
-        xA = x >> 1
-        if (x % 2) != 0:
-            xA = xA ^ a
-        MT[i] = MT[(i + m) % n] ^ xA
-    index = 0
-
-```
+    def twist():
+        for i in range(n):
+            x = (MT[i] & upper_mask) + (MT[(i + 1) % n] & lower_mask)
+            xA = x >> 1
+            if (x % 2) != 0:
+                xA = xA ^ a
+            MT[i] = MT[(i + m) % n] ^ xA
+        index = 0
+```  
 3. The `tamper` operation to tamper a state register to the produced 32-bit output
 ```python
-def extract_number():
-    """aka tamper state at index"""
-    y = MT[index]
-    y = y ^ ((y >> u) & d)
-    y = y ^ ((y << s) & b)
-    y = y ^ ((y << t) & c)
-    y = y ^ (y >> l)
-    index += 1
-    return y & ((1 << w) - 1)
+    def extract_number():
+        """aka tamper state at index"""
+        y = MT[index]
+        y = y ^ ((y >> u) & d)
+        y = y ^ ((y << s) & b)
+        y = y ^ ((y << t) & c)
+        y = y ^ (y >> l)
+        index += 1
+        return y & ((1 << w) - 1)
 ```
 
 ## Background
-The primary idea of cracking mersenne twister comes as a part of [Matasano's Cryptopals challenges](https://cryptopals.com/sets/3/challenges/23), after which
-there exist various conference talks for mersenne twister seed and state recovery for the aid of pentesters at various security conferences e.g  
+The primary idea of cracking Mersenne twister comes as a part of [Matasano's Cryptopals challenges](https://cryptopals.com/sets/3/challenges/23), after which
+there exist various conference talks for Mersenne twister seed and state recovery for the aid of pentesters at various security conferences e.g  
 - [untwister](https://github.com/bishopfox/untwister) presented at B-Sides Las Vegas 2014, which recovers upto 32 bit seeds by a parallalized bruteforce using a pool of workers or state recovery using 624 consecutive outputs (will be discussed soon).  
 - [PRNG Cracker](https://dspace.cvut.cz/bitstream/handle/10467/69409/F8-BP-2017-Molnar-Richard-thesis.pdf?sequence=-1&isAllowed=y) which in addition to parallalized seed bruteforcing, creates a rainbow table of outputs for lookup in seed database.  
-- [PHP mt_rand predictor](https://www.ambionics.io/blog/php-mt-rand-prediction) achieves seed recover using two outputs which are 227 apart of each other exploiting the improper implementation of mersenne twister in PHP in particular. This works only for PHP as it doesnt use the standard MT algorithm.  
+- [PHP mt_rand predictor](https://www.ambionics.io/blog/php-mt-rand-prediction) achieves seed recover using two outputs which are 227 apart of each other exploiting the improper implementation of Mersenne twister in PHP in particular. This works only for PHP as it doesnt use the standard MT (Mersenne Twister) algorithm.  
 
 ### State recovery from 624 consecutive outputs
-The mersenne twister keeps a state of 624 registers `MT` and an index `i` to track the position in the state. Once `i` reaches the end of state array, the `twist` operation is called to twist the state to next 624 numbers in the sequence and `i` is set to 0. The output $y_i$ is generated using the `tamper` function on the state `MT[i]`. This tamper function is completely reversible, hence given $y_i$ we can recover `MT[i]`. Once we recover any 624 state registers, we can set $i=0$ from there and predict any future outputs.
+The Mersenne twister keeps a state of 624 registers `MT` and an index `i` to track the position in the state. Once `i` reaches the end of state array, the `twist` operation is called to twist the state to next 624 numbers in the sequence and `i` is set to 0. The output $y_i$ is generated using the `tamper` function on the state `MT[i]`. This tamper function is completely reversible, hence given $y_i$ we can recover `MT[i]`. Once we recover any 624 state registers, we can set $i=0$ from there and predict any future outputs.
 
 #### Untamper
 Each of the step of instructions in `tamper` is reversible since it is simple xor of a register and right or left shifted select bits of it. Merely tracking which bits were xored with which bits of the input register to get the next value, we can undo the operation. Since in xoring with right shifting, the MSB of y would be MSB of x, and in xoring with left shifting, the LSB of y will be LSB of x.
@@ -121,7 +122,7 @@ def untamper(num):
 ```
 
 ## Our work
-We began with the implementation of standard MT19937 from algorithm described on [Wikipedia](https://en.wikipedia.org/wiki/Mersenne_Twister). This involved a lot of debugging and testing against various random number library implementations, reading the source code of the MT implementations in 
+We began with the implementation of standard MT19937 from algorithm described in [Mersenne Twister on Wikipedia](https://en.wikipedia.org/wiki/Mersenne_Twister). This involved a lot of debugging and testing against various random number library implementations, reading the source code of the MT implementations in  
 - [Python _randommodule.c](https://github.com/python/cpython/blob/master/Modules/_randommodule.c)  
 - [ruby_2_7/random.c](https://github.com/ruby/ruby/blob/ruby_2_7/random.c)  
 - [PHP random.c](https://github.com/php/php-src/blob/master/ext/standard/random.c)  
@@ -132,8 +133,9 @@ More or less, each one of these use the standard MT as an API to extract 32 bit 
 These include improved (and hence more non linear) initialization called `init_by_array` as proposed in [MT2002](http://www.math.sci.hiroshima-u.ac.jp/m-mat/MT/MT2002/emt19937ar.html), translation of equivalent functions from (usually) underlying c implementations to python and testing them rigorously to match the outputs and state. This is a bit challenging due to the fact python treats all integers without bounds and we need to ensure the general assertion of `int_32` everywhere is valid.
 
 ### Modelling
-After getting all the underlying algorithms and functionalities right, we modelled the seed recovery algorithm as a SMT problem using the SMT solver [Z3Prover](https://github.com/Z3Prover/z3), as a sequential program written in theory of BitVectors(32) (since the algorithm is designed to work on 32bit architectures) and theory of BitVectors(64) for MT19937-64 . After (painfully) modelling the program, we begin a SAT solver search (all-SAT to give all satisfying models for possible seed values) which leads us to a given sequence of outputs (the generated random numbers).  
-The core idea of z3 that it mixes the program data and the program, eases the modelling a lot. All we need to care about the correct SMTlib implementations to use as the general notion of various operators like bitshifts, comparisons are translated differently based on different scenarios by a compiler.  
+After getting all the underlying algorithms and functionalities right, we modelled the seed recovery algorithm as a [Satisfiability Modulo Theories](https://en.wikipedia.org/wiki/Satisfiability_modulo_theories) (SMT) decision problem, which is an extension of SAT with theories in first order logic.   
+We used the SMT solver [Z3Prover](https://github.com/Z3Prover/z3), as a sequential program written in theory of BitVectors(32) (since the algorithm is designed to work on 32bit architectures) and theory of BitVectors(64) for MT19937-64 . After (painfully) modelling the program, we begin a SAT solver search (all-SAT to give all satisfying models for possible seed values) which leads us to a given sequence of outputs (the generated random numbers).  
+The core idea behind using z3 is that it mixes the program data and the program quite well, eases the modelling a lot. All we need to care about the correct SMTlib implementations to use as the general notion of various operators like bitshifts, comparisons are translated differently based on different scenarios by a compiler.  
 e.g. the `tamper` state when written for a `BitVec(32) y` is almost exactly same as we would have written for a python-int
 ```python
 def tamper_state(y):
@@ -144,24 +146,19 @@ def tamper_state(y):
     return y
 ```
 Note that `tamper_state(y)` actually returns the bitvector computation
+```python
+     y ^ LShR(y, 11) & 4294967295 ^ 
+    (y ^ LShR(y, 11) & 4294967295) << 7 & 2636928640 ^
+    (y ^ LShR(y, 11) & 4294967295 ^
+    (y ^ LShR(y, 11) & 4294967295) << 7 & 2636928640) << 15 & 
+    4022730752 ^ LShR(
+     y ^ LShR(y, 11) & 4294967295 ^
+    (y ^ LShR(y, 11) & 4294967295) << 7 & 2636928640 ^
+    (y ^ LShR(y, 11) & 4294967295 ^
+    (y ^ LShR(y, 11) & 4294967295) << 7 & 2636928640) << 15 &
+    4022730752, 18)
 ```
-y ^ LShR(y, 11) & 4294967295 ^
-(y ^ LShR(y, 11) & 4294967295) << 7 & 2636928640 ^
-(y ^
- LShR(y, 11) & 4294967295 ^
- (y ^ LShR(y, 11) & 4294967295) << 7 & 2636928640) <<
-15 &
-4022730752 ^
-LShR(y ^
-     LShR(y, 11) & 4294967295 ^
-     (y ^ LShR(y, 11) & 4294967295) << 7 & 2636928640 ^
-     (y ^
-      LShR(y, 11) & 4294967295 ^
-      (y ^ LShR(y, 11) & 4294967295) << 7 & 2636928640) <<
-     15 &
-     4022730752,
-     18)
-```
+
 And the general line of thinking while encoding a problem in SMT would be to find a `y` such that `tamper_state(y)==x` for a given value of interest `x`. Thus after solving for `y` we get the value which led the given value `x`.  
 ```python
 def untamper_sat(num):
@@ -173,8 +170,8 @@ def untamper_sat(num):
         m = S.model()
         return m[m.decls()[0]].as_long()
 ```
-This serves as an alternative to the `untamper` proposed earlier (and a bit slower). But what advantages it provides with respect to the original untamper is that we can find all possible candidates `y` given say truncated output `untamper_state(y) >> truncation`.  
-Although SAT/SMT solvers are designed to find a single satisfying assignment, they can be extended easily (with a bit of overhead) to find all possible satisfying assignments by blocking and fixing terms over the search space thus enabling the solver to use previously learned clauses effectively [Programming Z3](https://theory.stanford.edu/%7Enikolaj/programmingz3.html#sec-blocking-evaluations)
+This serves as an alternative to the `untamper` proposed earlier, although it is around ~100 times slower due to the overheads involving calling the z3 c++ API internally. But what advantages it provides with respect to the original untamper is that we can find all possible candidates `y` given say truncated output `untamper_state(y) >> truncation`.  
+Although SAT/SMT solvers are designed to find a single satisfying assignment, they can be extended easily (with a bit of overhead) to find all possible satisfying assignments by blocking and fixing terms over the search space thus enabling the solver to use previously learned clauses effectively [Programming Z3](https://theory.stanford.edu/%7Enikolaj/programmingz3.html#sec-blocking-evaluations)  
 ```python
 def all_smt(s, initial_terms):
     def block_term(s, m, t):
@@ -316,21 +313,23 @@ One may assume that we would observe repeating values in 624 sized key, but it i
 On updating the solution based on the given observations by splitting into smaller independent sequential problems, and observing patterns to deduce the key size, we were able to cut running times from about 30 minutes + 15minutes * len(init_key) on known len(init_key)  to **~5 minutes** without knowing length of key.
 
 ### Results
-We were able to recover the seed of the mersenne twister for both MT19937 and MT19937-64 using any **3** consecutive outputs, in about ~200 seconds.  
+We were able to recover the seed of the Mersenne twister for both MT19937 and MT19937-64 using any **3** consecutive outputs, in about **~200 seconds**.  
 
 The modelling of `untwist` can reverse the `twist` operation to go back 624 outputs, which cannot be done easily by any of usual methods thus enabling us to predict unseen outputs which were produced before the observed set of outputs.  
 
-Our method is extremely memory and space efficient since SAT solvers work with negligible memory (<500 MB). And way faster and efficient considering the space time tradeoff involved.
+Our method is extremely memory and space efficient since SAT solvers work with negligible memory **(<500 MB)**. And they are way faster and efficient considering the space time tradeoff involved.
+
+Given insufficient information about the state bits, we can still effectively enumerate all possible solutions given the amount of information at hand without compromising the quality of solutions.
 
 The same methodology is applicable and extendible to various other cases where it might not be possible at all to come up with an angle of attack. For example.
 - Outputs of non-32 bit sizes, say `random.gerandbits(31)` is called
-- One of the most used methods from random library is usually `rand` which generates a random float in 0 to 1 (which internally makes two MT calls and throws away 11 bits to generate the random number)
+- One of the most used methods from random library is usually `rand` which generates a random float in 0 to 1 (which internally makes two MT calls and throws away 11 bits to generate the random number). We can recover state using **624** outputs in **~60 seconds**
 - `random.randrange(1,n)` is called which may internally make use of multiple MT calls.
 
 All of the various methods from random libraries can be used to recover the state/seed whereas all other approaches merely work if only we have 624 consecutive `random.getrandbits(32)` calls which is quite rare to observe in a real life application.
 
 ## Challenges
-While the wikipedia implementation is treated as the standard mersenne twister, we found that our implementation was producing different outputs from the implementations in programming languages even after initializing by the same seed. After dissecting a lot of source code, we figured out that the wiki implementation serves as the base of merssene twister implementation everywhere with a difference in the way it is seeded. All modern mersenne twister are seeded with a function `init_by_array` which takes an array of 32-bit seeds (or 32 bit hashes of seed objects). Later we found that this was proposed as an enhancement to equidistribution property to the base mersenne twister [MT2002](http://www.math.sci.hiroshima-u.ac.jp/m-mat/MT/MT2002/emt19937ar.html).  
+While the wikipedia implementation is treated as the standard Mersenne twister, we found that our implementation was producing different outputs from the implementations in programming languages even after initializing by the same seed. After dissecting a lot of source code, we figured out that the wiki implementation serves as the base of Mersenne twister implementation everywhere with a difference in the way it is seeded. All modern Mersenne twister are seeded with a function `init_by_array` which takes an array of 32-bit seeds (or 32 bit hashes of seed objects). Later we found that this was proposed as an enhancement to equidistribution property to the base Mersenne twister [MT2002](http://www.math.sci.hiroshima-u.ac.jp/m-mat/MT/MT2002/emt19937ar.html).  
 This `init_by_array` is much more non-linear that the standard `seed_mt` operation and makes it much more difficult to recover the seed values from a few outputs. We tried following the same approach, and it turns out it was unable to deduce the seed even in a couple of hours. 
 
 Yet another major challenge was to understand the exact API and studying what exactly to use.  
@@ -348,5 +347,17 @@ Yet another drawback is lack of parallelism. The current design of SAT/SMT solve
 
 
 ## References
-- [The Mersenne Twister](http://www.quadibloc.com/crypto/co4814.htm)
-- [Wikipedia](https://en.wikipedia.org/wiki/Mersenne_Twister)
+- [The Mersenne Twister](http://www.quadibloc.com/crypto/co4814.htm) http://www.quadibloc.com/crypto/co4814.htm
+- [Mersenne twister wikipedia](https://en.wikipedia.org/wiki/Mersenne_Twister) https://en.wikipedia.org/wiki/Mersenne_Twister
+- [Satisfiability Modulo Theories](https://en.wikipedia.org/wiki/Satisfiability_modulo_theories) https://en.wikipedia.org/wiki/Satisfiability_modulo_theories
+- [Matasano's Cryptopals challenges](https://cryptopals.com/sets/3/challenges/23) https://cryptopals.com/sets/3/challenges/23
+- [untwister](https://github.com/bishopfox/untwister) https://github.com/bishopfox/untwister
+- [PRNG Cracker](https://dspace.cvut.cz/bitstream/handle/10467/69409/F8-BP-2017-Molnar-Richard-thesis.pdf?sequence=-1&isAllowed=y) https://dspace.cvut.cz/bitstream/handle/10467/69409/F8-BP-2017-Molnar-Richard-thesis.pdf?sequence=-1&isAllowed=y
+- [PHP mt_rand predictor](https://www.ambionics.io/blog/php-mt-rand-prediction) https://www.ambionics.io/blog/php-mt-rand-prediction
+- [Python _randommodule.c](https://github.com/python/cpython/blob/master/Modules/_randommodule.c) https://github.com/python/cpython/blob/master/Modules/_randommodule.c
+- [ruby_2_7/random.c](https://github.com/ruby/ruby/blob/ruby_2_7/random.c) https://github.com/ruby/ruby/blob/ruby_2_7/random.c
+- [PHP random.c](https://github.com/php/php-src/blob/master/ext/standard/random.c) https://github.com/php/php-src/blob/master/ext/standard/random.c
+- [C++ libstdc++ gcc](https://code.woboq.org/gcc/libstdc++-v3/include/bits/random.tcc.html) https://code.woboq.org/gcc/libstdc++-v3/include/bits/random.tcc.html
+- [MT2002](http://www.math.sci.hiroshima-u.ac.jp/m-mat/MT/MT2002/emt19937ar.html)
+- [Z3Prover](https://github.com/Z3Prover/z3) https://github.com/Z3Prover/z3
+- [Programming Z3](https://theory.stanford.edu/%7Enikolaj/programmingz3.html#sec-blocking-evaluations) https://theory.stanford.edu/%7Enikolaj/programmingz3.html#sec-blocking-evaluations
