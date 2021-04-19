@@ -76,10 +76,10 @@ def extract_number():
 
 ## Background
 The primary idea of cracking mersenne twister comes as a part of [Matasano's Cryptopals challenges](https://cryptopals.com/sets/3/challenges/23), after which
-there exist various conference talks for mersenne twister seed and state recovery for the aid of pentesters at various security conferences e.g
+there exist various conference talks for mersenne twister seed and state recovery for the aid of pentesters at various security conferences e.g  
 - [untwister](https://github.com/bishopfox/untwister) presented at B-Sides Las Vegas 2014, which recovers upto 32 bit seeds by a parallalized bruteforce using a pool of workers or state recovery using 624 consecutive outputs (will be discussed soon).  
-- [PRNG Cracker](https://dspace.cvut.cz/bitstream/handle/10467/69409/F8-BP-2017-Molnar-Richard-thesis.pdf?sequence=-1&isAllowed=y) which in addition to parallalized seed bruteforcing, creates a rainbow table of outputs for lookup in seed database.
-- [PHP mt_rand predictor](https://www.ambionics.io/blog/php-mt-rand-prediction) achieves seed recover using two outputs which are 227 apart of each other exploiting the improper implementation of mersenne twister in PHP in particular. This works only for PHP as it doesnt use the standard MT algorithm.
+- [PRNG Cracker](https://dspace.cvut.cz/bitstream/handle/10467/69409/F8-BP-2017-Molnar-Richard-thesis.pdf?sequence=-1&isAllowed=y) which in addition to parallalized seed bruteforcing, creates a rainbow table of outputs for lookup in seed database.  
+- [PHP mt_rand predictor](https://www.ambionics.io/blog/php-mt-rand-prediction) achieves seed recover using two outputs which are 227 apart of each other exploiting the improper implementation of mersenne twister in PHP in particular. This works only for PHP as it doesnt use the standard MT algorithm.  
 
 ### State recovery from 624 consecutive outputs
 The mersenne twister keeps a state of 624 registers `MT` and an index `i` to track the position in the state. Once `i` reaches the end of state array, the `twist` operation is called to twist the state to next 624 numbers in the sequence and `i` is set to 0. The output $y_i$ is generated using the `tamper` function on the state `MT[i]`. This tamper function is completely reversible, hence given $y_i$ we can recover `MT[i]`. Once we recover any 624 state registers, we can set $i=0$ from there and predict any future outputs.
@@ -122,10 +122,11 @@ def untamper(num):
 
 ## Our work
 We began with the implementation of standard MT19937 from algorithm described on [Wikipedia](https://en.wikipedia.org/wiki/Mersenne_Twister). This involved a lot of debugging and testing against various random number library implementations, reading the source code of the MT implementations in 
-- [Python _randommodule.c](https://github.com/python/cpython/blob/master/Modules/_randommodule.c)
-- [ruby_2_7/random.c](https://github.com/ruby/ruby/blob/ruby_2_7/random.c)
-- [PHP random.c](https://github.com/php/php-src/blob/master/ext/standard/random.c)
-- [C++ libstdc++ gcc](https://code.woboq.org/gcc/libstdc++-v3/include/bits/random.tcc.html)  
+- [Python _randommodule.c](https://github.com/python/cpython/blob/master/Modules/_randommodule.c)  
+- [ruby_2_7/random.c](https://github.com/ruby/ruby/blob/ruby_2_7/random.c)  
+- [PHP random.c](https://github.com/php/php-src/blob/master/ext/standard/random.c)  
+- [C++ libstdc++ gcc](https://code.woboq.org/gcc/libstdc++-v3/include/bits/random.tcc.html)   
+
 And figuring out how each of these vary from the standard implementation on wiki. 
 More or less, each one of these use the standard MT as an API to extract 32 bit uniformly random values from the underlying state of MT then constructing their own API out of this functionality.  
 These include improved (and hence more non linear) initialization called `init_by_array` as proposed in [MT2002](http://www.math.sci.hiroshima-u.ac.jp/m-mat/MT/MT2002/emt19937ar.html), translation of equivalent functions from (usually) underlying c implementations to python and testing them rigorously to match the outputs and state. This is a bit challenging due to the fact python treats all integers without bounds and we need to ensure the general assertion of `int_32` everywhere is valid.
@@ -196,7 +197,89 @@ def all_smt(s, initial_terms):
         yield m       
 ```
 
+Similarly, another crucial function i.e. `twist` can be easily modelled as  
+```python
+def twist_state(self, MT):
+    for i in range(n):
+        x = (MT[i] & upper_mask) + \
+            (MT[(i + 1) % n] & lower_mask)
+        xA = LShR(x, 1)
+        xA = If(x & 1 == 1, xA ^ a, xA)
+        MT[i] = simplify(MT[(i + m) % n] ^ xA)
+```
+Note the use of `simplify` to simplify the required expression, which may seem unnecessary but given the fact that `MT[i]` derives from `MT[i+1]` and `MT[i+m]`, this expression grows exponentially and consume a lot of memory, thus simplifying the expressions at each step cut down the memory and also due to reduced sizes of internal ASTs, run considerably faster.  
 
+#### MT seed recovery
+Getting set up all the required functions and implementations, we can model the standard
+MT output generation and seeding.  
+Since the seeding process initializes the first state as the seed itself and state i is just a function of state (i-1), each initial state is expected to have enough bits of information about the seed.  
+The output is generated after twisting the initialization. So intuitively, 2-3 states should be sufficient to recover the seed. 
+```python
+def get_seed_mt(outputs):
+    STATE = [BitVec(f'MT[{i}]', 32) for i in range(n)]
+    SEED = BitVec('seed', 32)
+    STATE[0] = SEED
+    for i in range(1, n):
+        temp = f * \
+            (STATE[i - 1] ^ (LShR(STATE[i - 1], (w - 2)))) + i
+        STATE[i] = temp & ((1 << w) - 1)
+    twist_state(STATE)
+    S = Solver()
+    for index, value in outputs:
+        S.add(STATE[index] == untamper(value))
+    if S.check() == sat:
+        m = S.model()
+        return m[m.decls()[0]].as_long()
+```
+Testing out experimentally, we found out that **3** consecutive outputs are sufficient to determine the seed uniquely and takes **~200 seconds**.
+
+#### Finding past outputs
+Recoverying the state and subsequently finding the future outputs is obvious, but to find past inputs is not so trivial since every 624-th output the state is twisted, which is function of $(i-624)^{th}$, $(i-623)^{th}$ and $(i-227)^{th}$ outputs and we dont have sufficient information to recover those just using a single output. But this can be done again by modelling the previous state, twisting it and comparing the output.
+```python
+def untwist(outputs):
+    MT = [BitVec(f'MT[{i}]', 32) for i in range(n)]
+    twist_state(MT)
+    s = Solver()
+    for i in range(len(outputs)):
+        s.add(outputs[i] == MT[i])
+    if s.check() == sat:
+        model = s.model()
+        ut = {str(i): model[i].as_long() for i in model.decls()}
+        return [ut[f'MT[{i}]'] for i in range(n)]
+```
+Thus, the state can be twisted easily and almost instantaneously, upto the correctness of 623 states and MSB of first value, since only the MSB of first value is used in the twist operation.
+
+#### State recovery with truncated outputs
+State recovery from the standard 32-bits outputs is very restrictive. We explored more general ways of state recovery from truncated outputs i.e when the required output is not 32 bits.  
+When less than 32 bits are required, the given 32-bit random value of MT is masked or truncated to produce a given output. If a value larger than 32 bits is required, as many 32-bit calls are made and the last one is truncated.  
+We discuss a general and quite frequently used scenario `random.random()` i.e. floating point random number generation between [0,1]. Looking at how it is implemented, we find  
+```python
+def random.random():
+    a = extract_number()>>5
+    b = extract_number()>>6
+    # 2**53 = 9007199254740992.0
+    # 2**26 = 67108864
+    return (a*67108864.0+b)*(1.0/9007199254740992.0)
+```
+to generate a uniform random 64-bit floating point between [0,1], it will require 53-bit precision for which it makes two underlying MT calls, first call is truncated 5 bits to give MSB 27 bits and second truncated 6 bits to give LSB 26 bits. This can be modelled effectively by assuming a starting state of MT array, extracting outputs and twisting whenever it is required.  
+```python
+def state_recovery_rand(outputs):
+    MT = [BitVec(f'MT[{i}]',32) for i in range(624)]
+    values = []
+    for i in outputs:
+        values.extend( divmod(int(i*2**53),2**26))
+    S = Solver()
+    for i in range(len(values)):
+        if i%624==0:
+            twist_state(MT)
+        S.add(LShR(tamper_state(MT[i%624]),5+(i&1))==values[i])
+    if S.check()==sat:
+        model = S.model()
+        mt = {str(i): model[i].as_long() for i in model.decls()}
+        mt = [mt[f'MT[{i}]'] for i in range(len(model))]
+        return mt
+```
+Thus we can also recover state correctly and uniquely 
 
 ### Results
 We were able to recover the seed of the mersenne twister for both MT19937 and MT19937-64 using any **3** consecutive outputs, in about ~200 seconds.  
