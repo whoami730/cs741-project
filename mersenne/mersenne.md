@@ -279,7 +279,41 @@ def state_recovery_rand(outputs):
         mt = [mt[f'MT[{i}]'] for i in range(len(model))]
         return mt
 ```
-Thus we can also recover state correctly and uniquely 
+Thus we can also recover state correctly and uniquely using 624 outputs again in approximately **60 seconds**.
+
+#### Python init_by_array seed recovery
+In all the modern instances of MT, `init_by_array` is used which initializes the MT state using an array of 32-bit seeds, thus eliminating the possible $2^{32}$ seed space and improving initialization and producing better distributed outputs.  
+```python
+def init_by_array(init_key):
+    seed_mt(19650218)
+    i, j = 1, 0
+    for k in range(max(n, len(init_key))):
+        MT[i] = (MT[i] ^ (
+            (MT[i - 1] ^ (MT[i - 1] >> 30)) * 1664525)) + init_key[j] + j
+        MT[i] &= 0xffffffff
+        i += 1
+        j = (j+1)%len(init_key)
+        if i >= n:
+            MT[0] = MT[n - 1]
+            i = 1
+    for k in range(n - 1):
+        MT[i] = (MT[i] ^ (
+            (MT[i - 1] ^ (MT[i - 1] >> 30)) * 1566083941)) - i
+        MT[i] &= 0xffffffff
+        i += 1
+        if i >= n:
+            MT[0] = MT[n - 1]
+            i = 1
+    MT[0] = 0x80000000
+```
+Given a set of outputs, recovering the initial seed is a lot tricky here.  
+First of all, length of `init_key` is required. Secondly, there are two loops involved, each setting `MT[i]` as previous `MT[i]` and `MT[i-1]` thus blowing the size of constraints.  
+To overcome this problem, we split the problem into smaller chunks, i.e recovering the state before the second loop, then recoverying the state before first loop.  
+The requirement of knowing the size of `init_key` is skipped by assuming it to be of size 624 and then deducing patterns between the possible `init_key` array and finding the length of the key.  
+One may assume that we would observe repeating values in 624 sized key, but it is counter-intuitive given the fact that solver uses its freedom to have
+`init_key[j] + j` instead of `init_key`. Thus earlier modelling of assumption of keysize performed poorly and scaled badly when we increased the size of `init_key` and we had to enumerate our assumption of key size till we find the valid key.  
+
+On updating the solution based on the given observations by splitting into smaller independent sequential problems, and observing patterns to deduce the key size, we were able to cut running times from about 30 minutes + 15minutes * len(init_key) on known len(init_key)  to **~5 minutes** without knowing length of key.
 
 ### Results
 We were able to recover the seed of the mersenne twister for both MT19937 and MT19937-64 using any **3** consecutive outputs, in about ~200 seconds.  
