@@ -38,7 +38,7 @@ $$x_i = f \times (x_{i-1} \oplus (x_{i-1} >> (w-2))) + i$$
 for $i$ from 1 to n-1. The first value the algorithm then generates is based on $x_n$
 
 
-![](merstw.gif)
+![](merstw2.gif)
 
 While implementing, we need to consider only three things   
 
@@ -133,8 +133,9 @@ More or less, each one of these use the standard MT as an API to extract 32 bit 
 These include improved (and hence more non linear) initialization called `init_by_array` as proposed in [MT2002](http://www.math.sci.hiroshima-u.ac.jp/m-mat/MT/MT2002/emt19937ar.html), translation of equivalent functions from (usually) underlying c implementations to python and testing them rigorously to match the outputs and state. This is a bit challenging due to the fact python treats all integers without bounds and we need to ensure the general assertion of `int_32` everywhere is valid.
 
 ### Modelling
-After getting all the underlying algorithms and functionalities right, we modelled the seed recovery algorithm as a SMT problem using the SMT solver [Z3Prover](https://github.com/Z3Prover/z3), as a sequential program written in theory of BitVectors(32) (since the algorithm is designed to work on 32bit architectures) and theory of BitVectors(64) for MT19937-64 . After (painfully) modelling the program, we begin a SAT solver search (all-SAT to give all satisfying models for possible seed values) which leads us to a given sequence of outputs (the generated random numbers).  
-The core idea of z3 that it mixes the program data and the program, eases the modelling a lot. All we need to care about the correct SMTlib implementations to use as the general notion of various operators like bitshifts, comparisons are translated differently based on different scenarios by a compiler.  
+After getting all the underlying algorithms and functionalities right, we modelled the seed recovery algorithm as a [Satisfiability Modulo Theories](https://en.wikipedia.org/wiki/Satisfiability_modulo_theories) (SMT) decision problem, which is an extension of SAT with theories in first order logic.   
+We used the SMT solver [Z3Prover](https://github.com/Z3Prover/z3), as a sequential program written in theory of BitVectors(32) (since the algorithm is designed to work on 32bit architectures) and theory of BitVectors(64) for MT19937-64 . After (painfully) modelling the program, we begin a SAT solver search (all-SAT to give all satisfying models for possible seed values) which leads us to a given sequence of outputs (the generated random numbers).  
+The core idea behind using z3 is that it mixes the program data and the program quite well, eases the modelling a lot. All we need to care about the correct SMTlib implementations to use as the general notion of various operators like bitshifts, comparisons are translated differently based on different scenarios by a compiler.  
 e.g. the `tamper` state when written for a `BitVec(32) y` is almost exactly same as we would have written for a python-int
 ```python
 def tamper_state(y):
@@ -169,7 +170,7 @@ def untamper_sat(num):
         m = S.model()
         return m[m.decls()[0]].as_long()
 ```
-This serves as an alternative to the `untamper` proposed earlier (and a bit slower). But what advantages it provides with respect to the original untamper is that we can find all possible candidates `y` given say truncated output `untamper_state(y) >> truncation`.  
+This serves as an alternative to the `untamper` proposed earlier, although it is around ~100 times slower due to the overheads involving calling the z3 c++ API internally. But what advantages it provides with respect to the original untamper is that we can find all possible candidates `y` given say truncated output `untamper_state(y) >> truncation`.  
 Although SAT/SMT solvers are designed to find a single satisfying assignment, they can be extended easily (with a bit of overhead) to find all possible satisfying assignments by blocking and fixing terms over the search space thus enabling the solver to use previously learned clauses effectively [Programming Z3](https://theory.stanford.edu/%7Enikolaj/programmingz3.html#sec-blocking-evaluations)  
 ```python
 def all_smt(s, initial_terms):
@@ -312,15 +313,17 @@ One may assume that we would observe repeating values in 624 sized key, but it i
 On updating the solution based on the given observations by splitting into smaller independent sequential problems, and observing patterns to deduce the key size, we were able to cut running times from about 30 minutes + 15minutes * len(init_key) on known len(init_key)  to **~5 minutes** without knowing length of key.
 
 ### Results
-We were able to recover the seed of the Mersenne twister for both MT19937 and MT19937-64 using any **3** consecutive outputs, in about ~200 seconds.  
+We were able to recover the seed of the Mersenne twister for both MT19937 and MT19937-64 using any **3** consecutive outputs, in about **~200 seconds**.  
 
 The modelling of `untwist` can reverse the `twist` operation to go back 624 outputs, which cannot be done easily by any of usual methods thus enabling us to predict unseen outputs which were produced before the observed set of outputs.  
 
-Our method is extremely memory and space efficient since SAT solvers work with negligible memory (<500 MB). And way faster and efficient considering the space time tradeoff involved.
+Our method is extremely memory and space efficient since SAT solvers work with negligible memory **(<500 MB)**. And way faster and efficient considering the space time tradeoff involved.
+
+Given insufficient information about the state bits, we can still effectively enumerate all possible solutions given the amount of information at hand without compromising the quality of solutions.
 
 The same methodology is applicable and extendible to various other cases where it might not be possible at all to come up with an angle of attack. For example.
 - Outputs of non-32 bit sizes, say `random.gerandbits(31)` is called
-- One of the most used methods from random library is usually `rand` which generates a random float in 0 to 1 (which internally makes two MT calls and throws away 11 bits to generate the random number)
+- One of the most used methods from random library is usually `rand` which generates a random float in 0 to 1 (which internally makes two MT calls and throws away 11 bits to generate the random number). We can recover state using **624** outputs in **~60 seconds**
 - `random.randrange(1,n)` is called which may internally make use of multiple MT calls.
 
 All of the various methods from random libraries can be used to recover the state/seed whereas all other approaches merely work if only we have 624 consecutive `random.getrandbits(32)` calls which is quite rare to observe in a real life application.
@@ -345,7 +348,8 @@ Yet another drawback is lack of parallelism. The current design of SAT/SMT solve
 
 ## References
 - [The Mersenne Twister](http://www.quadibloc.com/crypto/co4814.htm) http://www.quadibloc.com/crypto/co4814.htm
-- [Wikipedia](https://en.wikipedia.org/wiki/Mersenne_Twister) https://en.wikipedia.org/wiki/Mersenne_Twister
+- [Mersenne twister wikipedia](https://en.wikipedia.org/wiki/Mersenne_Twister) https://en.wikipedia.org/wiki/Mersenne_Twister
+- [Satisfiability Modulo Theories](https://en.wikipedia.org/wiki/Satisfiability_modulo_theories) https://en.wikipedia.org/wiki/Satisfiability_modulo_theories
 - [Matasano's Cryptopals challenges](https://cryptopals.com/sets/3/challenges/23) https://cryptopals.com/sets/3/challenges/23
 - [untwister](https://github.com/bishopfox/untwister) https://github.com/bishopfox/untwister
 - [PRNG Cracker](https://dspace.cvut.cz/bitstream/handle/10467/69409/F8-BP-2017-Molnar-Richard-thesis.pdf?sequence=-1&isAllowed=y) https://dspace.cvut.cz/bitstream/handle/10467/69409/F8-BP-2017-Molnar-Richard-thesis.pdf?sequence=-1&isAllowed=y
