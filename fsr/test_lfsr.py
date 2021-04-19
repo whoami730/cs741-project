@@ -40,7 +40,7 @@ def test_n_bit_k_steps(n: int, k: int):
                 break
     return
 
-test_n_bit_k_steps(512,4096)
+# test_n_bit_k_steps(512,4096)
 
 # Test Geffes generator
 def test_geffe_generator(num_opt_bits, size_taps):
@@ -85,4 +85,4 @@ def test_geffe_generator(num_opt_bits, size_taps):
     # print(ll2, l2_normal, ll3, l3_normal)
     print((ll2 == l2_normal) & (ll3 == l3_normal))
 
-test_geffe_generator(512, 16)
+test_geffe_generator(1024, 24)

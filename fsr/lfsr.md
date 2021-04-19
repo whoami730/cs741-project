@@ -23,7 +23,10 @@ During every such step, the $a_i$'s remain the same, as the next input bit is li
 
 So we need to find the $a_i$'s and the minimal value $n$. This is where Berlekamp - Massey algorithm comes into play. It's helps in finding $a_i$'s in $O(n^2)$.
 
-## Berlekamp – Massey Algorithm
+## Background
+LFSRs were used in stream ciphers in early years of internet. Later on, Berlekamp published a paper that talked about an algorithm to decode [BCH codes](https://en.wikipedia.org/wiki/BCH_code). Later on, James Massey recognized its application to LFSRs and simplified the algorithm.
+
+### Berlekamp – Massey Algorithm
 The Berlekamp–Massey algorithm is an algorithm that will find the shortest linear feedback shift register (LFSR) for a given binary output sequence. \
 This algorithm starts with the assumption that the length of the LSFR is $l = 1$, and then *iteratively* tries to generate the known sequence and if it succeeds, everything is well, if not, $l$ must be *increased*. 
 
@@ -39,13 +42,10 @@ $b$ a copy of the *last discrepancy* since $L$ was updated,\
 and the multiplication by X^m is but an index shift. \
 The new discrepancy can now easily be computed as $d = d−(d/b)b = d−d = 0$. This above algorithm can further be simplified for modulo 2 case. See Wiki.
 
-## Background
-LFSRs were used in stream ciphers in early years of internet. Later on, Berlekamp published a paper that talked about an algorithm to decode [BCH codes](https://en.wikipedia.org/wiki/BCH_code). Later on, James Massey recognized its application to LFSRs and simplified the algorithm.
-
 ### Application of LFSRs
-LFSRs have been extensively used in stream cipher in low processing devices where speed is the need. They have also been used in combiner generator such as Geffe generator, Shrinking generator or any non-linear combination of multiple LFSR generated bits.
+Combinations of LFSRs are used extensively to create stream ciphers with low computational overhead. One such generator is Geffe generator which uses 3 LFSRs internally to generate an output bit.
 
-## Geffe Generator
+### Geffe Generator
 The Geffe generator consists of three LFSRs: LFSR-1, LFSR-2 and LFSR-3 using primitive feedback polynomials. If we denote the outputs of these registers by $x_1$, $x_2$ and $x_3$, respectively, then the Boolean function that combines the three registers to provide the generator output is given by
 $$ F(x_1, x_2, x_3) = (x_1 \land x_2) \oplus (\lnot x_1 \land x_2) $$
 There are $2^3 = 8$ possible values for the outputs of the three registers, and the value of this combining function for each of them is shown in the table below: 
@@ -60,33 +60,20 @@ There are $2^3 = 8$ possible values for the outputs of the three registers, and 
 |  1 | 1  | 0  | 1  |
 |  1 | 1  | 1  | 1  |
 
-Consider the output of the third register, $x_3$. The table above makes it clear that of the 8 possible outputs of $x_3$, 6 of them are equal to the corresponding value of the generator output, $F(x_1, x_2, x_3)$, i.e. $x_3 = F( x_1, x_2,x_3 )$ in 75% of all possible cases. Thus we say that LFSR-3 is correlated with the generator. This is a weakness we may exploit. This is  brute force technique, But given we know the output of $F(x_1, x_2, x_3)$, we can find possible values of $x_3$. This will reduce the brute forcing of 3 LFSRs to only 2 LFSRs!!\
-We do not need to stop here. Observe in the table above that $x_2$ also agrees with the generator output 6 times out of 8, again a correlation of 75% correlation between $x_2$ and the generator output. We may begin a brute force attack against LFSR-2 independently of the keys of LFSR-1 and LFSR-3, leaving only LFSR-1 unbroken.
-Also note that incorrectly guessed LFSR will give only output that matches with LFSR only 50% of the time. This gives us an idea about our guess of the other two LFSRs.
+Consider the output of the third register, $x_3$. The table above makes it clear that of the 8 possible outputs of $x_3$, 6 of them are equal to the corresponding value of the generator output, $F(x_1, x_2, x_3)$, i.e. $x_3 = F( x_1, x_2,x_3 )$ in **75%** of all possible cases. This correlation can be exploited to have a brute force search on the key bits of LSFR-3, since on correct key we would observe an advantage of 1/4 over any other key.
+This will reduce the brute forcing of 3 LFSRs to only 2 LFSRs!!\
+Similarly LFSR-2 has 75% of correlation with the output. After recovering key bits of LFSR-2 and LFSR-3, we can brute force over the bits of LFSR-1 to get the correct key.\
+Thus, burte search of $2^{n_1 + n_2 + n_3}$ is reduced to $2^{n1} + 2^{n2} + 2^{n3}$.
 
 ## Our work
-[Correlation attack](#references) can be used on Geffe generator. This was first published in 1984 by Seigenthaler. However, there is no known efficient way to break Geffe Generator except the brute force correlation attack. This brute force attack takes around **exponential time** i.e. $2^{n_1} + 2^{n_2}$ where n1, n2 are the bits of seed of LFSRs used in generator. This reduction is significant, it reduces the time from $2^{n_1 + n_2 + n_3}$ to the above one. 
-
-Correlatoin attack on **12-bit seeds with 256** outputs gave correct output in approx. 13s.
-We modeled geffe generator in Z3 and tried recover the keys using Z3 Solver. We were able to recover all the original seeds accurately for **20-bit, 1500 output bits,** within **18s**. Which is much more faster than the exponential distribution
-
-We have encoded the **seed** finding problem into [Z3Prover](https://github.com/Z3Prover/z3) and tried and recovered the seed for given feedback polynomial.
-
-Later on we tried and understood the Berlekamp-Massey algorithm. The original algo of Berlekamp is very notation intensive. And a bit non trivial to be understood on first try. Massey's extenstion was also a bit notation intensive but by that time we had become familiar with many of the symbols. Reading from multiple blogs and some slides of professors, we successfully understood the algorithm probably in 3-4 days. (Yeah it is a bit much but it was worth it.)\
-Once the LFSR was modeled, we came up with a way to encode Geffe generator for z3 Solver.
-
 ### Modeling
-We coded LFSRs and Geffe Generator in python and with proper understanding of the algorithm it was not much effort to test and debug. Encoding it in Z3 was a challenge.\
-Than moving on to the attacks, we coded [Berlekamp-Massey Algorithm](#berlekamp--massey-algorithm) and tested it which was a success! We also implemented the bruteforce correlation attack on Geffe generator. This correlation attack takes exponential time.
-
-For modeling LFSR and Geffe geneerator as an *SMT problem*, we started experimenting with the modeling part of LFSR. After much trial and errors, we came up with a model. We also abstracted the [LFSR](#lfsr) implementation so that it can work on pythonic as well as Z3 type input of seed and feedback polinomial. We did the same abstraction with [Geffe generator](#geffe-generator-implementation) class as well.
-
-We than started comparing the results of both the attacks on Geffe generator i.e., correlation attack, and SAT-solver attack.
+Though Geffe generator is susceptible to correlation attack, we found a faster and much more efficient attack by modeling the Geffe generator as a Boolean formula over the key-bits and solving the satisfiability problem over generated output bits.  
+We encoded the **seed** finding problem into [Z3Prover](https://github.com/Z3Prover/z3).  
+We abstracted the Geffe Generated in a manner that it would return a boolean function when the input key bits are a boolean function and and python bool when the input bits are python bool.
+[See solve function](#geffe-generator-implementation) and [Test cases](#testing-the-implementation).
 
 ### Results
-The results that we got were really amazing! The z3 model was very efficient. It was also able to get the correct seeds with less number of ouput bits given. This is very significant as it is not necessary that we know much of the output bits.
-
-The summar of the result is as follows:
+We observed significantly faster runtimes using the Z3 boolean model as compared to brute force correlation attack.
 
 | Specifications | Time taken using brute-force| Time taken using Z3 solver |
 |:---| :---: | :---: |
@@ -99,16 +86,23 @@ The summar of the result is as follows:
 | 16-bit seed each, 256 bit output | 222.66s | 4.53s |
 | 16-bit seed each, 512 bit output | 449.29s | 5.99s |
 | 18-bit seed each, 256 bit output | 936.59s | 29.33s |
-| 24-bit seed each, 2048 bit output | - not possible - | 400.45s |
+<!-- | 24-bit seed each, 2048 bit output | - Timout - | 400.45s | -->
+While the runtime of discovered correlation attack is observably *exponential* in the number of bits of LFSRs whereas, observed runtime of our approach is *subexponential/polynomial*, since boolean constraints are relatively sparse and SAT solvers are highly optimized in solving such boolean constraints.  
 
-Z3 model is significantly faster than the bruteforce correlation attack. The seeds recovered are correct and tested ([See Testcases Code](#testing-the-implementation)). Also, Trying to recover 3 LFSRs with **24-bit seeds** each is very time consuming, as it will take $O(2^{24})$ time. However, using our model we can find the seed accurately within only **400s i.e. 6.5 minutes. **Similarly we can find even higher bits seed such as 64, 128, within hours which is quite significant as compared to existing algorithms.\
+### Limitations
+#### Berlekamp-Massey VS SAT modeling
+For finding the minimum degree feedback polynomial using SAT encoding, we ran into the problem of not knowing the degree of the polynomial, thus we need to enumerate over the possible guesses of the degree and checking the satisfiability of the generated boolean formula over LSFR state bits and output bits.
 
-In conclusion, we can use SAT solvers to get the seed to PRNGs from very little known random output bits. This can compromise many cryptosystems.\
-One of the significant application of LFSRs is in **A5/1 and A5/2** protocols, used in mobile phone communication. This protocols also use 3 LFSRs. This system is also vulnerable to correlation attacks but modeling A5/1 and A5/2 in SMT solver can break this system signigicantly faster.
+Since we have no expected bounds on runtimes, we could not conclude termination while recovering the minimal polynomial using the SAT encoding approach.
+
+### Future Scope
+We explored a known weak combiner generator where the correlations between various LFSR bits and the generated output bits is obvious, the solver might me internally exploiting some higher order correlation which might be difficult to discover.
+
+This approach can be extended to different combiner generators and seemingly undiscovered correlations can be expoilted in a similar efficient way.
 
 ## References: 
 - [Wikipedia - Berlekamp Massey Algorithm](https://en.wikipedia.org/wiki/Berlekamp%E2%80%93Massey_algorithm)
-- [This Blog Post](https://bell0bytes.eu/linear-feedback-shift-registers/)
+- [Bell0bytes blog](https://bell0bytes.eu/linear-feedback-shift-registers/)
 - [BMA - IIT Kharagpur](https://cse.iitkgp.ac.in/~debdeep/courses_iitkgp/Crypto/slides/BMA.pdf)
 - [Wikipedia - Correlation Attack](https://en.wikipedia.org/wiki/Berlekamp%E2%80%93Massey_algorithm)
 
@@ -150,7 +144,7 @@ class LFSR:
 - This class is also an abstraction. Depending on our utility we can use the same instance to guess the seeds generated using same combination polynomial.
 ```python
 class Geffe:
-    """ Geffe Generator's with solver in z3 and brute force as well. We need to know  the combination polynomial beforehand """
+    """ Geffe Generator's with solver in z3 and brute force as well. We need to know the combination polynomial beforehand """
 
     def __init__(self, l1, l2, l3, c1, c2, c3):
         self._l1, self._l2, self._l3 = l1, l2, l3
@@ -159,7 +153,6 @@ class Geffe:
     
     def next_bit(self):
         bits = [lfsr.next_bit() for lfsr in self._lfsrs]
-        # Equiv to if bits[0] then bits[1] else bits[2] in GF(2)
         return (bits[0] & bits[1]) | ((~bits[0]) & bits[2])
     
     def get_seqn(self, steps):
@@ -257,7 +250,7 @@ def str_to_lst_int(string):
     return list(map(int, string))
 
 def test_n_bit_k_steps(n: int, k: int):
-    # Generate seed and combination polynomial and generate some eandom bits
+    """ Generate seed and combination polynomial and generate some eandom bits """
     rndm_seed = bin(random.getrandbits(n))[2:]
     seed = rndm_seed + '0'*(n-len(rndm_seed))
     rndm_poly = bin(random.getrandbits(n))[2:]
@@ -271,7 +264,7 @@ def test_n_bit_k_steps(n: int, k: int):
     print("Time taken to recover LFSR seed: ", time.time() - start_time)
     sd = bm.get_seed()
     taps = bm.get_taps()
-    # print(bm.get_degree())
+
     # UnLFSR test
     unlfsr = UnLFSR_Z3(gen_opt[:len(gen_opt)//2], len(gen_opt)//4)
     start_time = time.time()
@@ -292,7 +285,7 @@ def test_n_bit_k_steps(n: int, k: int):
                 break
     return
 
-# test_n_bit_k_steps(2048,4096)
+test_n_bit_k_steps(2048,4096)
 
 # Test Geffes generator
 def test_geffe_generator(num_opt_bits, size_taps):
@@ -323,18 +316,16 @@ def test_geffe_generator(num_opt_bits, size_taps):
     geffe_normal = Geffe(str_to_lst_int(ll1), str_to_lst_int(ll2), str_to_lst_int(ll3),  str_to_lst_int(c1), str_to_lst_int(c2), str_to_lst_int(c3))
 
     opt = geffe_normal.get_seqn(num_opt_bits)
-    # opt = opt + '0'*(num_opt_bits - len(opt))
     geffe = Geffe(l1, l2, l3, list(map(int,c1)), list(map(int,c2)), list(map(int,c3)))
     start_time = time.time()
     for l1_z3, l2_z3, l3_z3 in geffe.solve(opt):
-        print("Time taken Geffe using z3: " , time.time() - start_time)
+        print("Time taken Geffe using Z3: " , time.time() - start_time)
         print(ll1 == ''.join(map(str,l1_z3)), ll2 == ''.join(map(str,l2_z3)), ll3 == ''.join(map(str,l3_z3)))
         start_time = time.time()
 
     start_time = time.time()
     l2_normal, l3_normal = geffe_normal.solve_bruteforce(opt)
     print("Time taken to break Geffe using bruteforce: ", time.time() - start_time)
-    # print(ll2, l2_normal, ll3, l3_normal)
     print((ll2 == l2_normal) & (ll3 == l3_normal))
 
 test_geffe_generator(2048, 24)
