@@ -1,6 +1,6 @@
 import random
 from time import time
-from twister import *
+from mersenne import *
 import os
 
 def urandbits(n):
