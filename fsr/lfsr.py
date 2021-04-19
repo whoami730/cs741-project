@@ -2,7 +2,33 @@
 
 from functools import reduce
 from z3 import *
-import tqdm
+import tqdm, itertools
+
+def all_smt(s, var_list):
+    """
+    yielding all satisfying models over `var_list` on a 
+    z3.Solver() instance `s` containing constraints
+    """
+    def block_term(s, m, t):
+        s.add(t != m.eval(t))
+
+    def fix_term(s, m, t):
+        s.add(t == m.eval(t))
+
+    def all_smt_rec(terms):
+        if sat == s.check():
+            m = s.model()
+            yield m
+            for i in range(len(terms)):
+                s.push()
+                block_term(s, m, terms[i])
+                for j in range(i):
+                    fix_term(s, m, terms[j])
+                for m in all_smt_rec(terms[i:]):
+                    yield m
+                s.pop()
+    for m in all_smt_rec(var_list):
+        yield m
 
 class LFSR:
     """ Normal LFSR impl with pythonic inputs. Everything is in `GF(2)`
@@ -13,12 +39,15 @@ class LFSR:
 
     def __init__(self, seed, poly):
         assert len(seed) == len(poly), "Error: Seed and taps poly  should be of same length"
-        self._seed = seed.copy()      # MSB to LSB  
-        self._comb_poly = poly[::-1]  # LSB to MSB
+        self._seed = seed.copy()        # Sn, Sn-1, ..., S0
+        self._comb_poly = poly          # C0, C1, ..., Cn
     
     def next_bit(self):
         """ Generate next output bit """
-        tapped = [self._seed[i] for i,j in enumerate(self._comb_poly) if j == 1]
+        if type(self._comb_poly[0]) == BitVecRef:
+            tapped = self._comb_poly.copy()
+        else:
+            tapped = [self._seed[i] for i,j in enumerate(self._comb_poly) if j == 1]
         xored = reduce(lambda x,y: x^y, tapped)
         opt = self._seed.pop(0)
         self._seed.append(xored)
@@ -28,6 +57,10 @@ class LFSR:
         """ Get next `steps` number of output bits """
         opt = [self.next_bit() for _ in range(steps)]
         return opt
+    
+    def set_seed(self, new_seed):
+        """ Set the new seed to generate new LFSR using same polynomial """
+        self._seed = new_seed.copy()
 
 class Berlekamp_Massey:
     """ Berlekamp - Massey algo: PYTHON IMPLEMENTATION
@@ -76,11 +109,11 @@ class Berlekamp_Massey:
 class UnLFSR_Z3:
     """ Similar to berlekamp in the sense that it finds the seed and the comb poly using z3 solver. """
 
-    def __init__(self, opt):
+    def __init__(self, opt, degree_guess):
         """ opt is list of 0s and 1s. 1st bit 1st """
         self._opt = opt.copy()
-        self._seed = [BitVec(f'k_{i}',1) for i in range(len(opt)//2)]
-        self._poly = [BitVec(f'c_{i}',1) for i in range(len(opt)//2)]
+        self._seed = [BitVec(f'k_{i}',1) for i in range(degree_guess)]
+        self._poly = [BitVec(f'c_{i}',1) for i in range(degree_guess)]
 
     def solve(self):
         s = Solver()
@@ -97,101 +130,85 @@ class UnLFSR_Z3:
             print("ERROR: unsolvable... unpossible!!")
 
 class Geffe:
-    """ Jeff Generator's Solver in z3. We need to know  the combination polynomial beforehand """
+    """ Geffe Generator with solver in z3 as brute force as well. We need to know  the combination polynomial beforehand """
 
-    def __init__(self, c1, c2, c3):
-        self._l1 = [BitVec(f'l1_{i}',1) for i in range(len(c1))]
-        self._l2 = [BitVec(f'l2_{i}',1) for i in range(len(c2))]
-        self._l3 = [BitVec(f'l3_{i}',1) for i in range(len(c3))]
+    def __init__(self, l1, l2, l3, c1, c2, c3):
+        self._l1, self._l2, self._l3 = l1, l2, l3
         self._c1, self._c2, self._c3 = c1, c2, c3
         self._lfsrs = [LFSR(self._l1,c1), LFSR(self._l2, c2), LFSR(self._l3, c3)]
     
     def next_bit(self):
         bits = [lfsr.next_bit() for lfsr in self._lfsrs]
+        # Equiv to if bits[0] then bits[1] else bits[2] in GF(2)
         return (bits[0] & bits[1]) | ((~bits[0]) & bits[2])
+    
+    def get_seqn(self, steps):
+        """ Return steps geffe generated bits """
+        return [self.next_bit() for _ in range(steps)]
 
     def solve(self, opt):
         """ opt is a list of output bits gen by jeff gen """
         s = Solver()
         for b in opt:
             s.add(self.next_bit() == b)
-        if s.check() == sat:
-            model = s.model()
-            one = ''.join(str(model[k]) for k in self.l1)
-            two = ''.join(str(model[k]) for k in self.l2)
-            thr = ''.join(str(model[k]) for k in self.l3)
-            return (one,two,thr)
-        else:
-            return None
+        for model in all_smt(s, self._l1 + self._l2 + self._l3):
+            one = ''.join(str(model[k]) for k in self._l1)
+            two = ''.join(str(model[k]) for k in self._l2)
+            thr = ''.join(str(model[k]) for k in self._l3)
+            yield (one,two,thr)
     
-    def solve_bruteforce(self, lo, hi, l , corr):
-        correl = [[], []]
+    def __temp_geffe(self, lfsr0: LFSR, lfsr1: LFSR, lfsr2: LFSR, steps: int):
+        ans = []
+        for _ in range(steps):
+            bits = [lfsr0.next_bit(), lfsr1.next_bit(), lfsr2.next_bit()]
+            ans.append((bits[0] & bits[1]) | ((~bits[0]) & bits[2]))
+        return ans
+    
+    def solve_bruteforce(self, opt: list):
+        n = len(opt)
+        lfsr0 = self._lfsrs[0]
+        lfsr1 = self._lfsrs[1]
+        lfsr2 = self._lfsrs[2]
 
-# opt = [int(i) for i in input("Enter the seqn, MSB to LSB: ").strip()]
-# ans = UnLFSR_Z3(opt).solve()
-# print(ans[0])
-# print(ans[1])
-# c1 = [int(i) for i in '0000000000000100111']
-# c2 = [int(i) for i in '000000000000000000000100111']
-# c3 = [int(i) for i in '00000000000000000101011']
+        # >75% match of opt with x3 i.e. lfsr2
+        possible_seeds2 = []
+        m2 = 0
+        for seed2 in tqdm.tqdm(itertools.product('01', repeat=len(lfsr2._comb_poly))):
+            lfsr2.set_seed(list(map(int,seed2)))
+            x3 = lfsr2.get_lfsr(len(opt))
+            corr = sum(x==y for x,y in zip(opt, x3))
+            if corr >= int(0.70*n):
+                possible_seeds2.append(''.join(seed2))
+            if m2 < corr:
+                m2 = corr
+        assert len(possible_seeds2) >=1, "Error: No x3 found, less data supplied."
 
-# print(Geffe(c1,c2,c3).solve(opt))
+        # > 75% match of opt with x2 i.e. lfsr1
+        possible_seeds1 = []
+        m1 = 0
+        for seed1 in tqdm.tqdm(itertools.product('01', repeat=len(lfsr1._comb_poly))):
+            lfsr1.set_seed(list(map(int,seed1)))
+            x2 = lfsr1.get_lfsr(len(opt))
+            corr = sum(x==y for x,y in zip(opt, x2))
+            if corr >= int(0.70*n):
+                possible_seeds1.append(''.join(seed1))
+            if m1 < corr:
+                m1 = corr
+        assert len(possible_seeds1) >=1, "Error: No x2 found, less data supplied"
 
-# # Jeff's gen in python
-# l1 = lambda key: LFSR( list(map(int,"{:019b}".format(key))) ,[19,18,17,14])
-# l2 = lambda key: LFSR( list(map(int,"{:027b}".format(key))) ,[27,26,25,22])
-# l3 = lambda key: LFSR( list(map(int,"{:023b}".format(key))) ,[23,22,20,18])
-# def bruteforce(lo,hi,l,corr):
-#     max_v, max_k = 0,0
-#     for key in tqdm(range(lo,hi)):
-#         lfsr = l(key)
-#         output = [lfsr.bit() for _ in range(256)]
-#         correlation = sum([i==j for i,j in zip(output,stream)])
-#         if correlation>=corr:
-#             max_k = key
-#             max_v = correlation
-#             print(max_k,max_v)
+        candidates = [(x, y) for x in possible_seeds1 for y in possible_seeds2]
+        # print(candidates)
 
-# # Jeff's generator in Z3
-# class LFSR:
-#     def __init__(self, key, taps):
-#         d = max(taps)
-#         assert len(key) == d, "Error: key of wrong size."
-#         self._s = key
-#         self._t = [d - t for t in taps]
-#     def _sum(self, L):
-#         s = 0
-#         for x in L:
-#             s = s ^ x
-#         return s
-#     def _get_next_bit(self):
-#         b = self._s[0]
-#         self._s = self._s[1:] + [self._sum(self._s[p] for p in self._t)]
-#         return b
-#     def bit(self):
-#         return self._get_next_bit()
-
-# class Jeff:
-#     def __init__(self, key):
-#         assert len(key) <= 19 + 23 + 27 # shard up 69+ bit key for 3 separate lfsrs
-#         self.LFSR = [
-#             LFSR(key[:19], [19, 18, 17, 14]),
-#             LFSR(key[19:46], [27, 26, 25, 22]),
-#             LFSR(key[46:], [23, 22, 20, 18]),
-#         ]
-#     def bit(self):
-#         b = [lfsr.bit() for lfsr in self.LFSR]
-#         return (b[0] & b[1]) | ((~b[0]) & b[2])
-# output = [1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1]
-# encryption = {'iv': '310c55961f7e45891022668eea77f805', 'encrypted_flag': '2aa92761b36a4aad9a578d6cd7a62c52ba0709cb560c0ecff33a09e4af43bff0a1c865023bf28b387df91d6319f0e103d39dda88a88c14cfcec94c8ad02a6fb3152a4466c1a184f69184349e576d8950cac0a5b58bf30e67e5269883596a33a6'}
-# def decrypt(key):
-#     key = sha1(str(key).encode()).digest()[:16]
-#     iv = bytes.fromhex(encryption['iv'])
-#     return AES.new(key, AES.MODE_CBC, iv).decrypt(bytes.fromhex(encryption['encrypted_flag']))
-# s = Solver()
-# KEY = [BitVec(f"k_{i}", 1) for i in range(69)]
-# J = Jeff(KEY)
-# for b in output:
-#     s.add(J.bit() == b)
-# assert s.check() == sat
-# print(unpad(decrypt(int(''.join(str(s.model()[k]) for k in KEY) , 2)), 16))
+        # Now iterate through the remainig candidates and the all possible lfsr0 seeds
+        # res = []
+        # for s1, s2 in candidates:
+        #     lfsr1.set_seed(list(map(int, s1)))
+        #     lfsr2.set_seed(list(map(int, s2)))
+        #     for s0 in tqdm.tqdm(itertools.product('01', repeat=len(lfsr0._comb_poly))):
+        #         lfsr0.set_seed(list(map(int, s0)))
+        #         geffe_opt = self.__temp_geffe(lfsr0, lfsr1, lfsr2, n)
+        #         if geffe_opt == opt:
+        #             res.append((s0, s1, ''.join(s2)))
+        # print("Number of results: ", res)
+        # return res[0]
+        return (possible_seeds1[0], possible_seeds2[0])
