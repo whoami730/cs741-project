@@ -1,4 +1,4 @@
-""" Some functions to implement Linear Feedback Shift Register. """
+""" Some functions to implement Linear Feedback Shift Register. Berlekamp-Massey algo and Geffe Generator """
 
 from functools import reduce
 from z3 import *
@@ -125,10 +125,7 @@ class Geffe:
             return None
     
     def solve_bruteforce(self, lo, hi, l , corr):
-        max_v, max_k = 0, 0
-        for k in tqdm(range(lo, hi)):
-            # lfsr = 
-            opt = []
+        correl = [[], []]
 
 # opt = [int(i) for i in input("Enter the seqn, MSB to LSB: ").strip()]
 # ans = UnLFSR_Z3(opt).solve()

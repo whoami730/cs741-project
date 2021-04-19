@@ -38,22 +38,49 @@ $B$ is a copy of the *last candidate* $C$ since $L$ was updated,\
 $b$ a copy of the *last discrepancy* since $L$ was updated,\
 and the multiplication by X^m is but an index shift. \
 The new discrepancy can now easily be computed as $d = d−(d/b)b = d−d = 0$. This above algorithm can further be simplified for modulo 2 case. See Wiki.
-
+<!-- uses of lfsr combiner generator -->
 ## Background
 LFSRs were used in stream ciphers in early years of internet. Later on, Berlekamp published a paper that talked about an algorithm to decode [BCH codes](https://en.wikipedia.org/wiki/BCH_code). Later on, James Massey recognized its application to LFSRs and simplified the algorithm.
 
-## Our work.
+### Application of LFSRs
+LFSRs have been extensively used in stream cipher in low processing devices where speed is the need. They have also been used in combiner generator such as Geffe generator, Shrinking generator or any non-linear combination of multiple LFSR generated bits.
+
+## Geffe Generator
+The Geffe generator consists of three LFSRs: LFSR-1, LFSR-2 and LFSR-3. If we denote the outputs of these registers by $x_1$, $x_2$ and $x_3$, respectively, then the Boolean function that combines the three registers to provide the generator output is given by
+$$ F(x_1, x_2, x_3) = (x_1 \land x_2) \oplus (\lnot x_1 \land x_2) $$
+There are $2^3 = 8$ possible values for the outputs of the three registers, and the value of this combining function for each of them is shown in the table below: 
+| $x_1$  | $x_2$  | $x_3$  | $F(x_1, x_2, x_3)$  |
+|:---:|:---:|:---:|:---:|
+|  0 | 0  | 0  | 0  |
+|  0 | 0  | 1  | 1  |
+|  0 | 1  | 0  | 0  |
+|  0 | 1  | 1  | 1  |
+|  1 | 0  | 0  | 0  |
+|  1 | 0  | 1  | 0  |
+|  1 | 1  | 0  | 1  |
+|  1 | 1  | 1  | 1  |
+
+Consider the output of the third register, $x_3$. The table above makes it clear that of the 8 possible outputs of $x_3$, 6 of them are equal to the corresponding value of the generator output, $F(x_1, x_2, x_3)$, i.e. $x_3 = F( x_1, x_2,x_3 )$ in 75% of all possible cases. Thus we say that LFSR-3 is correlated with the generator. This is a weakness we may exploit. This is  brute force technique, But given we know the output of $F(x_1, x_2, x_3)$, we can find possible values of $x_3$. This will reduce the brute forcing of 3 LFSRs to only 2 LFSRs!!\
+We do not need to stop here. Observe in the table above that $x_2$ also agrees with the generator output 6 times out of 8, again a correlation of 75% correlation between $x_2$ and the generator output. We may begin a brute force attack against LFSR-2 independently of the keys of LFSR-1 and LFSR-3, leaving only LFSR-1 unbroken.
+Also note that incorrectly guessed LFSR will give only output that matches with LFSR only 50% of the time.
+
+## Our work
+Jeffe generator hase this Correlation attack described above since 1984. However, there is not known efficient way to break Geffe Generator except the brute force correlation attack. We have modeled geffe generator in Z3 and tried and break this generator.
+
 We have encoded the **seed** finding problem into [Z3Prover](https://github.com/Z3Prover/z3) and tried and recovered the seed for given feedback polynomial. We began by coding 16-bit Fibonacci LFSR and than general n-bit LFSR. This was not much hard as it is a fairly simple algorithm. 
 
-Later on we tried and understood the Berlekamp-Massey algorithm. The original algo of Berlekamp is very notation intensive. And a bit non trivial to be understood on first try. Massey's extenstion was also a bit notation intensive but by that time we had become familiar with many of the symbols. Reading from multiple blogs and some slides of professors, we successfully understood the algorithm probably in 3-4 days. (Yeah it is a bit much but it was worth it.)
+Later on we tried and understood the Berlekamp-Massey algorithm. The original algo of Berlekamp is very notation intensive. And a bit non trivial to be understood on first try. Massey's extenstion was also a bit notation intensive but by that time we had become familiar with many of the symbols. Reading from multiple blogs and some slides of professors, we successfully understood the algorithm probably in 3-4 days. (Yeah it is a bit much but it was worth it.)\
+Once the LFSR was modeled, we came up with a way to encode Geffe generator for z3 Solver.
 
-### Modelling
+### Modeling
 
-Than we tried coding it in python and with proper understanding of the algorithm it was not much effort to test and debug. Encoding it in Z3 was a challenge. 
+We tried coding LFSRs, Berlekamp-Massey and Geffe Generator in python and with proper understanding of the algorithm it was not much effort to test and debug. Encoding it in Z3 was a challenge. 
 
 After couple of trial and erros and after much brainstorming we  modeled lfsr. Berlekamp Massey algorithm successfully pridicted 2048-bit seed within 1 second. 
 
-Geffe's generator can predict three 20 bit LFSRs in 197.15s using only 256 output bits. 20 bit 128 known output in 1638s
+Geffe's generator can predict **three 20 bit LFSRs in 197.15s** using only **256** output bits. And three **20 bit LFSRs using 128 known output in 1638s.**
+
+This is significantly faster than the bruteforce Correlation attack.
 
 ## References: 
 - [Wikipedia - Berlekamp Massey Algorithm](https://en.wikipedia.org/wiki/Berlekamp%E2%80%93Massey_algorithm)
