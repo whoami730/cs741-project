@@ -11,10 +11,10 @@ The internal state is defined by a sequence of $n=624$, 32-bit registers ($w$)
 $$x_{k+n} \to x_{k+m} \oplus (( x_k^{u} \| x_{k+1}^{l})A)$$
 To compensate for reduced dimensionality of equidistribution, the state is cascaded with tampering transform (to improve the equidistribution) to produce the outputm
 
-$$y \to x \oplus(( x >> u)\&d)$$
-$$y \to y \oplus(( y << s)\&b)$$
-$$y \to y \oplus(( y << t)\&c)$$
-$$z \to y \oplus( y >> l)$$
+$$y \to x \oplus(( x \gg u)\&d)$$
+$$y \to y \oplus(( y \ll s)\&b)$$
+$$y \to y \oplus(( y \ll t)\&c)$$
+$$z \to y \oplus( y \gg l)$$
 
 The computed $z$ is returned by the algorithm
 where the choice of constants is as follows
@@ -33,7 +33,7 @@ where the choice of constants is as follows
 ### Initialization
 The state needed for a Mersenne Twister implementation is an array of $n$ values of $w$ bits each. To initialize the array, a w-bit seed value is used to supply $x_0$ through $x_{n-1}$ by setting $x_0$ to the seed value and thereafter setting
 
-$$x_i = f \times (x_{i-1} \oplus (x_{i-1} >> (w-2))) + i$$
+$$x_i = f \times (x_{i-1} \oplus (x_{i-1} \gg (w-2))) + i$$
 
 for $i$ from 1 to n-1. The first value the algorithm then generates is based on $x_n$
 
@@ -317,7 +317,7 @@ We were able to recover the seed of the Mersenne twister for both MT19937 and MT
 
 The modelling of `untwist` can reverse the `twist` operation to go back 624 outputs, which cannot be done easily by any of usual methods thus enabling us to predict unseen outputs which were produced before the observed set of outputs.  
 
-Our method is extremely memory and space efficient since SAT solvers work with negligible memory **(<500 MB)**. And way faster and efficient considering the space time tradeoff involved.
+Our method is extremely memory and space efficient since SAT solvers work with negligible memory **(<500 MB)**. And they are way faster and efficient considering the space time tradeoff involved.
 
 Given insufficient information about the state bits, we can still effectively enumerate all possible solutions given the amount of information at hand without compromising the quality of solutions.
 
