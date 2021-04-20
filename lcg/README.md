@@ -110,9 +110,26 @@ One solution is to modify our original algorithm to include $X_0$ in the unknown
 Another possible solution is to realize that $X_0$ in most cases needn't be unique, since the only outputs we obtain start from $X_1$! Thus, there could be multiple possible $X_0$'s which could yield the same sequence. We rely on our algorithm to obtain $X_1$, and then a SAT solver is incorporated to find out all possible $X_0$ which could yield the expected $X_1$. This way, we do not have to rely on the existence of the modular inverse of $a$, and several possible existing seeds can be recovered easily.
 
 Another attack on truncated LCGs was implemented which doesn't rely on the knowledge or absence thereof of the parameters of the (truncated) LCG. This attack proceeds by modelling the parameter recovery problem for LCG as a [Satisfiability Modulo Theories](https://en.wikipedia.org/wiki/Satisfiability_modulo_theories) (SMT) decision problem.  
-We again used the SMT solver [Z3Prover](https://github.com/Z3Prover/z3) to 
+We again used the SMT solver [Z3Prover](https://github.com/Z3Prover/z3) and encoded our parameter recovery problem by constructing the unknown parameters as bit-vectors of same length as our modulus(that is, even though the parameters might be unknown, their maximum possible bit-lengths are assumed to be known and so is the truncation!).
+
+### Observations
+We observed that in cases where $a$ was not co-prime to $M$, say for example when $M$ is a power of $2$ and $a$ is even, multiple solutions always exist! Both the mentioned attacks on truncated LCGs were able to recover these multiple solutions.  
+It was observed that Lattice-based attack is much more faster than SAT-based attack. However, since the lattice attack requires a bit more information than the information-theoretic lower bound, it doesn't perform very well in cases where the number of outputs are just enough in bit-sizes! In these cases, however, a SAT-based attack still performs very well, and as is usual, multiple solutions if possible, are reported. 
+
+## Challenges
+Finding a good library for lattice algorithms as well as which allows matrix operations to be performed on Integer or Rational Matrices was a challenge we faced.  
+Another challenge was that the original paper on lattice-based attack didn't describe the algorithm in much detail, neither was the intuition of the algorithm obvious, so we spent a lot of time understanding the working of the same, and had also faced several issues, such as the $X_0$ issue mentioned above.  
+
+## Limitations
+Lattice-based attack relies on knowing the parameters of the truncated LCG. Had we not known those parameters, the above attack wouldn't work at all.  
+All attacks rely on knowing the truncation as well as the bit-length of the modulus, none of the attacks are so general as to be able to figure these out on the fly!  
+Another major limitation is that since SAT solvers work in exponential or subexponential time, they're much slower compared to the lattice attack which works in polynomial time.
 
 
 ## References
 - [LCG](https://en.wikipedia.org/wiki/Linear_congruential_generator)
-- [Truncated LCG Reconstruction](https://www.math.cmu.edu/~af1p/Texfiles/RECONTRUNC.pdf)
+- [Truncated LCG Reconstruction](https://www.math.cmu.edu/~af1p/Texfiles/RECONTRUNC.pdf)  
+Reconstructing Truncated Integer Variables Satisfying Linear Congruences  
+Alan M. Frieze, Johan Hastad, Ravi Kannan, Jeffrey C. Lagarias, and Adi Shamir  
+SIAM Journal on Computing 1988 17:2, 262-280 
+- [Z3Prover](https://github.com/Z3Prover/z3)

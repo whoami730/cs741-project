@@ -1,7 +1,4 @@
 from z3 import *
-import random
-
-from Crypto.Util.number import *
 from fpylll import IntegerMatrix, LLL
 from time import time
 from sympy import QQ, Matrix
@@ -133,12 +130,6 @@ class Breaker(truncated_lcg):
 
         start_time, last_time = time(), time()
         terms = [seed0,a,b,n]
-        if not self.known_a:
-            terms.append(a)
-        if not self.known_b:
-            terms.append(b)
-        if not self.known_n:
-            terms.append(n)
 
         guess = []
 
@@ -200,23 +191,3 @@ class Breaker(truncated_lcg):
             guess.append(lattice_guessed_seed)
         print(f"Total time taken(LLL) : {time()-start_time}")
         return guess
-
-
-if __name__ == "__main__":
-    
-    p = 2**48
-    a = random.randint(0,p-1)
-    b = random.randint(0,p-1)
-    seed_original = random.randint(0,p-1)
-    num_out = 4
-    truncation = 24
-    
-    print(f"{seed_original = } {a = } {b = } {p = }")
-
-    brkr = Breaker(seed_original, a, b, p, truncation,known_a=True,known_b=True,known_n=True)
-    l = []
-    for i in range(num_out):
-        l.append(brkr.next())
-    
-    brkr.break_lattice(l)
-    brkr.break_sat(l)

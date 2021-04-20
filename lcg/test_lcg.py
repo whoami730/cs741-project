@@ -1,8 +1,8 @@
 from lcg import Breaker
 from random import randint
-from Crypto.Util.number import *
+from Crypto.Util.number import getPrime
 
-def test_known_trunc_prime(num_out=8, truncation=24):
+def known_trunc_prime(num_out=8, truncation=16):
     p = getPrime(32)
     a = randint(0,p-1)
     b = randint(0, p - 1)
@@ -18,7 +18,7 @@ def test_known_trunc_prime(num_out=8, truncation=24):
     brkr.break_lattice(l)
     brkr.break_sat(l)
 
-def test_known_trunc_2(num_out=8, truncation=16):
+def known_trunc_2(num_out=8, truncation=16):
     p = 2**32
     a = randint(0,p-1)
     b = randint(0, p - 1)
@@ -34,7 +34,7 @@ def test_known_trunc_2(num_out=8, truncation=16):
     brkr.break_lattice(l)
     brkr.break_sat(l)
 
-def test_unknown_a_b_trunc_2(num_out=16, truncation=16):
+def unknown_a_b_trunc_2(num_out=16, truncation=16):
     p = 2**32
     a = randint(0,p-1)
     b = randint(0, p - 1)
