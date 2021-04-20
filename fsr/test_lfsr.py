@@ -10,12 +10,12 @@ def test_n_bit_k_steps(n: int, k: int):
     seed = rndm_seed + '0'*(n-len(rndm_seed))
     rndm_poly = bin(random.getrandbits(n))[2:]
     feedback_poly = rndm_poly + '0'*(n - len(rndm_poly))
-    lfsr = LFSR(list(map(int,seed)), list(map(int,feedback_poly)))
+    lfsr = LFSR(list(map(int,seed)), list(map(int,feedback_poly[::-1])))
     gen_opt = lfsr.get_lfsr(2*k)
 
     # Test bm algo
     start_time = time.time()
-    bm = Berlekamp_Massey(gen_opt[:len(gen_opt)//2])
+    bm = Berlekamp_Massey(gen_opt)
     print("Time taken to recover LFSR seed: ", time.time() - start_time)
     sd = bm.get_seed()
     taps = bm.get_taps()
@@ -25,22 +25,25 @@ def test_n_bit_k_steps(n: int, k: int):
     # start_time = time.time()
     # seed_unlfsr, taps_unlfsr = unlfsr.solve()
     # print("Unlfsr solved in ", time.time() - start_time)
-
-    lfsr_new = LFSR(sd, taps)
+    print(feedback_poly)
+    print(''.join(map(str,taps)))
+    print(seed)
+    print(''.join(map(str, sd)), len(sd), bm.get_degree())
+    lfsr_new = LFSR(sd, taps[::-1])
     bm_opt = lfsr_new.get_lfsr(2*k)
 
     if bm_opt == gen_opt:
         print(f"No mismatch for {n} bit seed. Matched {2*k} (random) output bits")
         print("Success!")
     else:
-        for i, j in enumerate(zip(bm_opt[k:], gen_opt[k:])):
+        for i, j in enumerate(zip(bm_opt, gen_opt)):
             if j[0] != j[1]:
                 print(f"For {2*k} bits, 1st mismatch at index: {i}")
                 print("Partial Success. Need more output bits")
                 break
     return
 
-# test_n_bit_k_steps(512,4096)
+# test_n_bit_k_steps(256,2000)
 
 # Test Geffes generator
 def test_geffe_generator(num_opt_bits, size_taps):
@@ -85,4 +88,4 @@ def test_geffe_generator(num_opt_bits, size_taps):
     # print(ll2, l2_normal, ll3, l3_normal)
     print((ll2 == l2_normal) & (ll3 == l3_normal))
 
-test_geffe_generator(1024, 24)
+# test_geffe_generator(200, 16)

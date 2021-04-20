@@ -173,27 +173,25 @@ class Geffe:
         # >75% match of opt with x3 i.e. lfsr2
         possible_seeds2 = []
         m2 = 0
-        for seed2 in tqdm.tqdm(itertools.product('01', repeat=len(lfsr2._comb_poly))):
+        for seed2 in tqdm.tqdm(itertools.product('01', repeat=len(lfsr2._comb_poly)), total=pow(2, len(lfsr2._comb_poly))):
             lfsr2.set_seed(list(map(int,seed2)))
             x3 = lfsr2.get_lfsr(len(opt))
             corr = sum(x==y for x,y in zip(opt, x3))
             if corr >= int(0.70*n):
                 possible_seeds2.append(''.join(seed2))
-            if m2 < corr:
-                m2 = corr
+                break
         assert len(possible_seeds2) >=1, "Error: No x3 found, less data supplied."
 
         # > 75% match of opt with x2 i.e. lfsr1
         possible_seeds1 = []
         m1 = 0
-        for seed1 in tqdm.tqdm(itertools.product('01', repeat=len(lfsr1._comb_poly))):
+        for seed1 in tqdm.tqdm(itertools.product('01', repeat=len(lfsr1._comb_poly)), total=pow(2, len(lfsr1._comb_poly))):
             lfsr1.set_seed(list(map(int,seed1)))
             x2 = lfsr1.get_lfsr(len(opt))
             corr = sum(x==y for x,y in zip(opt, x2))
             if corr >= int(0.70*n):
                 possible_seeds1.append(''.join(seed1))
-            if m1 < corr:
-                m1 = corr
+                break
         assert len(possible_seeds1) >=1, "Error: No x2 found, less data supplied"
 
         candidates = [(x, y) for x in possible_seeds1 for y in possible_seeds2]
