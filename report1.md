@@ -1086,17 +1086,11 @@ class Breaker_lcg(lcg):
         super().__init__(seed,a,b,m)
 
     def break_lcg(self, ntimes):
-
         outputs = [self.next() for i in range(ntimes)]
-
         diffs = [(j-i) for i,j in zip(outputs,outputs[1:])]
-
         prods = [(b**2-a*c) for a,b,c in zip(diffs,diffs[1:],diffs[2:])]
-
         p = gcd(*prods)
-
         a = (diffs[1]*gmpy2.invert(diffs[0],p))%p
-
         b = (outputs[1]-a*outputs[0])%p
 
         assert all(j == (a*i + b)%p for i,j in zip(outputs,outputs[1:]))
