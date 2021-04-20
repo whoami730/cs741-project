@@ -706,7 +706,8 @@ class Geffe:
         # >75% match of opt with x3 i.e. lfsr2
         possible_seeds2 = []
         m2 = 0
-        for seed2 in tqdm.tqdm(itertools.product('01', repeat=len(lfsr2._comb_poly))):
+        for seed2 in tqdm.tqdm(itertools.product('01',\
+             repeat=len(lfsr2._comb_poly))):
             lfsr2.set_seed(list(map(int,seed2)))
             x3 = lfsr2.get_lfsr(len(opt))
             corr = sum(x==y for x,y in zip(opt, x3))
@@ -720,7 +721,8 @@ class Geffe:
         # > 75% match of opt with x2 i.e. lfsr1
         possible_seeds1 = []
         m1 = 0
-        for seed1 in tqdm.tqdm(itertools.product('01', repeat=len(lfsr1._comb_poly))):
+        for seed1 in tqdm.tqdm(itertools.product('01', \
+            repeat=len(lfsr1._comb_poly))):
             lfsr1.set_seed(list(map(int,seed1)))
             x2 = lfsr1.get_lfsr(len(opt))
             corr = sum(x==y for x,y in zip(opt, x2))
@@ -789,12 +791,6 @@ def test_n_bit_k_steps(n: int, k: int):
     print("Time taken to recover LFSR seed: ", time.time() - start_time)
     sd = bm.get_seed()
     taps = bm.get_taps()
-
-    # UnLFSR test
-    unlfsr = UnLFSR_Z3(gen_opt[:len(gen_opt)//2], len(gen_opt)//4)
-    start_time = time.time()
-    seed_unlfsr, taps_unlfsr = unlfsr.solve()
-    print("Unlfsr solved in ", time.time() - start_time)
     
     lfsr_new = LFSR(sd, taps)
     bm_opt = lfsr_new.get_lfsr(2*k)
@@ -811,7 +807,7 @@ def test_n_bit_k_steps(n: int, k: int):
                 break
     return
 
-test_n_bit_k_steps(2048,4096)
+test_n_bit_k_steps(1024,4096)
 
 # Test Geffes generator
 def test_geffe_generator(num_opt_bits, size_taps):
@@ -978,7 +974,8 @@ class Breaker(Dual_EC):
         self.e = random.randint(1, P256.q - 1)
         Q = (P * self.e)
         self.d = int(invert(self.e,P256.q))
-        # we ensure that P and Q are related, that allows us to exploit this possible backdoor
+        # we ensure that P and Q are related...
+        #  that allows us to exploit this possible backdoor
         # Q = e*P
         
         super().__init__(seed, P, Q)
@@ -994,7 +991,7 @@ class Breaker(Dual_EC):
             if a:
                 for j in b:
                     p = Point(poss_x, j, curve=P256)
-                    assert P256.is_point_on_curve((p.x,p.y)), "Point not on curve? How!"
+                    assert P256.is_point_on_curve((p.x,p.y)), "Point not on curve?"
                     l.append(p)
         return l
         
@@ -1003,11 +1000,9 @@ class Breaker(Dual_EC):
         Try to recover the current state of the Dual_EC_DRBG 
         cannot recover older states!
         '''
-
         it = 240
         oup = self.next()
         l = self.possible_points(oup)
-
         # find all possible next states
         next_s = list(set([(p * self.d).x for p in l]))
 
@@ -1027,7 +1022,8 @@ class Breaker(Dual_EC):
             if (len(inds) <= 1):
                 break
 
-            inds = list(filter(lambda x: ((oup1 & (1<<p)) == (next_pts[x] & (1<<p))),inds))
+            inds = list(filter(lambda x: ((oup1 & (1<<p)) == \
+                 (next_pts[x] & (1<<p))),inds))
             
             it += 1
             p -= 1
@@ -1040,7 +1036,6 @@ class Breaker(Dual_EC):
         return next_s[inds[0]], it
                 
 if __name__ == '__main__':
-
     rand_seed = urandbits(256)
     d = Breaker(rand_seed)
     start_t = time()
@@ -1184,7 +1179,6 @@ class Breaker(truncated_lcg):
 
         start_time, last_time = time(), time()
         terms = [seed0,a,b,n]
-
         guess = []
 
         for m in all_smt(s,terms):
@@ -1226,9 +1220,10 @@ class Breaker(truncated_lcg):
         u = (U * v)
         self.shorten(u)
 
-        A = DomainMatrix.from_Matrix(Matrix(k, k, lambda i,\
+        A = DomainMatrix.from_Matrix(Matrix(k, k, lambda i, \
              j: L[i, j])).convert_to(QQ)
-        b = DomainMatrix.from_Matrix(Matrix(k, 1, lambda i, j: u[i, 0])).convert_to(QQ)
+        b = DomainMatrix.from_Matrix(Matrix(k, 1, lambda i, \
+             j: u[i, 0])).convert_to(QQ)
         M = (A.inv() * b).to_Matrix()
 
         next_st = (outputs[0] << self.truncation) | int(M[0, 0] % self.n)
