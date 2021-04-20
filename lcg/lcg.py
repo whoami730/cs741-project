@@ -1,7 +1,7 @@
 from z3 import *
 from fpylll import IntegerMatrix, LLL
 from time import time
-from sympy import QQ, Matrix
+from sympy import QQ, Matrix, invert
 from functools import reduce
 from sympy.polys.matrices import DomainMatrix
 import sys, os, gmpy2
@@ -177,17 +177,23 @@ class Breaker(truncated_lcg):
         M = (A.inv() * b).to_Matrix()
 
         next_st = (outputs[0] << self.truncation) | int(M[0, 0] % self.n)
-        
-        seed = BitVec('seed', self.n_bitlen)
-        
-        s = Solver()
-        s.add(ULT(seed,self.n),next_st == simplify(URem(self.a * ZeroExt(self.n_bitlen, seed) + self.b, self.n)))
-        
-        guess = []
-
-        for m in all_smt(s, [seed]):
-            lattice_guessed_seed = m[seed]
+        try:
+            lattice_guessed_seed = (invert(self.a,self.n)*(next_st-self.b))%self.n
             print(f"{lattice_guessed_seed = }")
-            guess.append(lattice_guessed_seed)
-        print(f"Total time taken(LLL) : {time()-start_time}")
-        return guess
+            print(f"Total time taken(LLL) : {time()-start_time}")
+            return [lattice_guessed_seed]
+        except:
+            # if inverse of a in p does not exist
+            seed = BitVec('seed', self.n_bitlen)
+            
+            s = Solver()
+            s.add(ULT(seed,self.n),next_st == simplify(URem(self.a * ZeroExt(self.n_bitlen, seed) + self.b, self.n)))
+            
+            guess = []
+
+            for m in all_smt(s, [seed]):
+                lattice_guessed_seed = m[seed]
+                print(f"{lattice_guessed_seed = }")
+                guess.append(lattice_guessed_seed)
+            print(f"Total time taken(LLL) : {time()-start_time}")
+            return guess

@@ -18,9 +18,9 @@ def known_trunc_prime(num_out=8, truncation=16):
     brkr.break_lattice(l)
     brkr.break_sat(l)
 
-def known_trunc_2(num_out=8, truncation=16):
+def known_trunc_binary_field(num_out=8, truncation=16):
     p = 2**32
-    a = randint(0,p-1)
+    a = randint(0,(p-1)//2)
     b = randint(0, p - 1)
     seed_original = randint(0, p - 1)
     
@@ -34,9 +34,9 @@ def known_trunc_2(num_out=8, truncation=16):
     brkr.break_lattice(l)
     brkr.break_sat(l)
 
-def unknown_a_b_trunc_2(num_out=16, truncation=16):
+def unknown_a_b_trunc_2(num_out=16, truncation=8):
     p = 2**32
-    a = randint(0,p-1)
+    a = 2*randint(0,(p-1)//2)
     b = randint(0, p - 1)
     seed_original = randint(0, p - 1)
     

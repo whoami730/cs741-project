@@ -38,7 +38,7 @@ $$x_i = f \times (x_{i-1} \oplus (x_{i-1} \gg (w-2))) + i$$
 for $i$ from 1 to n-1. The first value the algorithm then generates is based on $x_n$
 
 
-![](merstw2.gif)
+![](merstw3.gif)
 
 While implementing, we need to consider only three things   
 
