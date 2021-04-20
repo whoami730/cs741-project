@@ -1,6 +1,7 @@
 ## Linear Feedback Shit Registers - LFSRs
 Linear Feeback shift registers are one of the easiest way to generate seemingly random bits from known bits. The word linear suggests that the algorithm is linear in nature, as in, the next output bit depends linearly on previous bit(s).
 
+## Algorithmic Details
 A simple way to write LFSR is:
 $$S_{n} = \sum_{j=1}^{j=n}a_j*S_{n-j}$$
 where\
@@ -16,7 +17,7 @@ LFSR were used for stream ciphers and are still used today in algorithms like A5
 Linear Feedback Shift Register is a shift register whose input bit is a function of it's previous state.\
 Let's say we want to generate random bits using n-bit LFSR with seed $ S = S_1, S_2, ..., S_n$. Some fixed values lets say $a_1, a_2,... , a_n$ are used to compute the next input bit (these $a_i$'s are also called feedback polynomial or combination coefficients). Next input bit is given by the formula: 
 $$S_{n} = \sum_{j=1}^{j=n}a_j*S_{n-j}$$
-After computing the next bit ($S_N$), the rightmost bit is of the input is considered as *output bit* and the newly computed bit is attached to the left and the process is repated **k** number of times (called steps or cycles). This gives the *$k$* bits of output which is than used in cryptographic systems or for some other purpose.
+After computing the next bit ($S_N$), the rightmost bit of the input is considered as *output bit* and the newly computed bit is attached to the left and the process is repated **k** number of times (called steps or cycles). This gives the *$k$* bits of output which is than used in cryptographic systems or for some other purpose.
 <!-- ![](16bit-lfsr.png) -->
 
 During every such step, the $a_i$'s remain the same, as the next input bit is linearly dependent on the previous bits thorough $a_i$'s. Given sufficient number of output bits, we can successfully guess a minimal feedback polynomial and minimal size of LFSR such that we can successfully generate the same random bits.
@@ -41,9 +42,6 @@ $B$ is a copy of the *last candidate* $C$ since $L$ was updated,\
 $b$ a copy of the *last discrepancy* since $L$ was updated,\
 and the multiplication by X^m is but an index shift. \
 The new discrepancy can now easily be computed as $d = d−(d/b)b = d−d = 0$. This above algorithm can further be simplified for modulo 2 case. See Wiki.
-
-### Application of LFSRs
-Combinations of LFSRs are used extensively to create stream ciphers with low computational overhead. One such generator is Geffe generator which uses 3 LFSRs internally to generate an output bit.
 
 ### Geffe Generator
 The Geffe generator consists of three LFSRs: LFSR-1, LFSR-2 and LFSR-3 using primitive feedback polynomials. If we denote the outputs of these registers by $x_1$, $x_2$ and $x_3$, respectively, then the Boolean function that combines the three registers to provide the generator output is given by
