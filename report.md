@@ -679,20 +679,23 @@ def untamper(num):
 - This class is an abstarct implementation handeling `pythonic` as well as `Z3-type` input of seed and feedback/combination polynomial.
 ```python
 class LFSR:
-    """ Normal LFSR impl with pythonic inputs. Everything is in `GF(2)`
+    """ Normal LFSR impl with pythonic inputs. 
+    Everything is in `GF(2)`
     n-bit LFSR defined by given feedback polynomial
     seed = MSB to LSB list of bits
     feedback_polynomial = MSB to LSB list of bits
     """
 
     def __init__(self, seed, poly):
-        assert len(seed) == len(poly), "Error: Seed and taps should be of same length"
+        assert len(seed) == len(poly), \
+            "Error: Seed and taps should be of same length"
         self._seed = seed.copy()        # Sn, Sn-1, ..., S0
         self._comb_poly = poly          # C0, C1, ..., Cn
     
     def next_bit(self):
         """ Generate next output bit """
-        tapped = [self._seed[i] for i,j in enumerate(self._comb_poly) if j == 1]
+        tapped = [self._seed[i] for i,j in \
+            enumerate(self._comb_poly) if j == 1]
         xored = reduce(lambda x,y: x^y, tapped)
         opt = self._seed.pop(0)
         self._seed.append(xored)
@@ -762,7 +765,8 @@ class Geffe:
                 possible_seeds2.append(''.join(seed2))
             if m2 < corr:
                 m2 = corr
-        assert len(possible_seeds2) >=1, "Error: No x3 found, less data supplied."
+        assert len(possible_seeds2) >=1, "Error: No x3 found,\
+             less data supplied."
 
         # > 75% match of opt with x2 i.e. lfsr1
         possible_seeds1 = []
@@ -775,7 +779,8 @@ class Geffe:
                 possible_seeds1.append(''.join(seed1))
             if m1 < corr:
                 m1 = corr
-        assert len(possible_seeds1) >=1, "Error: No x2 found, less data supplied"
+        assert len(possible_seeds1) >=1, "Error: No x2 found,\
+             less data supplied"
         
         candidates = [(x, y) for x in possible_seeds1 for y in possible_seeds2]
 
@@ -807,7 +812,8 @@ class UnLFSR_Z3:
             taps = ''.join(str(model[i]) for i in self._poly)
             return sd,taps
         else:
-            print("ERROR: unsolvable... provide more output or bits guessed is wrong")
+            print("ERROR: unsolvable... provide more output\
+                 or bits guessed is wrong")
 ```
 ### Testing the implementation
 - This code implemtes certain test cases for testing the Z3 modeling
@@ -845,7 +851,8 @@ def test_n_bit_k_steps(n: int, k: int):
     bm_opt = lfsr_new.get_lfsr(2*k)
 
     if bm_opt == gen_opt:
-        print(f"No mismatch for {n} bit seed. Matched {2*k} (random) output bits")
+        print(f"No mismatch for {n} bit seed. Matched {2*k} \
+            (random) output bits")
         print("Success!")
     else:
         for i, j in enumerate(zip(bm_opt[k:], gen_opt[k:])):
@@ -884,15 +891,18 @@ def test_geffe_generator(num_opt_bits, size_taps):
     ll3 = bin(random.getrandbits(size_taps))[2:]
     ll3 = ll3 + '0'*(size_taps - len(ll3))
 
-    geffe_normal = Geffe(str_to_lst_int(ll1), str_to_lst_int(ll2), str_to_lst_int(ll3),\
-          str_to_lst_int(c1), str_to_lst_int(c2), str_to_lst_int(c3))
+    geffe_normal = Geffe(str_to_lst_int(ll1), str_to_lst_int(ll2), \
+        str_to_lst_int(ll3), str_to_lst_int(c1),\
+            str_to_lst_int(c2), str_to_lst_int(c3))
 
     opt = geffe_normal.get_seqn(num_opt_bits)
-    geffe = Geffe(l1, l2, l3, list(map(int,c1)), list(map(int,c2)), list(map(int,c3)))
+    geffe = Geffe(l1, l2, l3, list(map(int,c1)),\
+         list(map(int,c2)), list(map(int,c3)))
     start_time = time.time()
     for l1_z3, l2_z3, l3_z3 in geffe.solve(opt):
         print("Time taken Geffe using Z3: " , time.time() - start_time)
-        print(ll1 == ''.join(map(str,l1_z3)), ll2 == ''.join(map(str,l2_z3)), ll3 == ''.join(map(str,l3_z3)))
+        print(ll1 == ''.join(map(str,l1_z3)), ll2 == ''.join(map(str,l2_z3)),\
+             ll3 == ''.join(map(str,l3_z3)))
         start_time = time.time()
 
     start_time = time.time()
@@ -944,7 +954,8 @@ def SqrRoots(a, n):
         (g, xa, xb) = xgcd(a, n)
         if(g != 1):
             raise ValueError(
-                "***** Error *****: {0} has no inverse (mod {1}) as their gcd is {2}, not 1.".format(a, n, g))
+                "***** Error *****: {0} has no inverse (mod {1}) as \
+                    their gcd is {2}, not 1.".format(a, n, g))
         return xa % n
 
     def TSRsqrtmod(a, grpord, p):
@@ -991,7 +1002,8 @@ class Dual_EC:
 class Breaker(Dual_EC):
     def solution_exists(self, x):
         '''
-            Checks if a solution exists for a given x-coordinate. Also outputs solutions in case they exist
+            Checks if a solution exists for a given x-coordinate. 
+            Also outputs solutions in case they exist.
             Returns (True, solutions) or (False, ())
         '''
         rhs = P256.evaluate(x)
@@ -1024,7 +1036,7 @@ class Breaker(Dual_EC):
         
     def possible_points(self, output):
         '''
-            Given the output 240 bits, we want to obtain the possible points r*Q could be.
+        Given the output 240 bits, obtain the possible points r*Q could be.
         '''
         l = []
         for i in tqdm(range(2 ** 16)):
@@ -1039,7 +1051,8 @@ class Breaker(Dual_EC):
         
     def break_dec(self):
         '''
-            Try to recover the current state of the Dual_EC_DRBG - can't recover older states!
+        Try to recover the current state of the Dual_EC_DRBG 
+        cannot recover older states!
         '''
 
         it = 240
@@ -1138,7 +1151,8 @@ class Breaker_lcg(lcg):
         b = (outputs[1]-a*outputs[0])%p
 
         assert all(j == (a*i + b)%p for i,j in zip(outputs,outputs[1:]))
-        print(f"Recovered internal constants from {len(outputs)} outputs : p = {p} a = {a} b = {b}")
+        print(f"Recovered internal constants from {len(outputs)}\
+             outputs : p = {p} a = {a} b = {b}")
         return p,a,b
 
 def all_smt(s, initial_terms):
@@ -1215,7 +1229,8 @@ class Breaker(truncated_lcg):
 
         s.add(ULT(seed0,n),ULT(a,n),ULT(b,n),UGE(seed0,0),UGE(a,0),UGE(b,0))
         for v in outputs:
-            seed = simplify(URem(ZeroExt(self.n_bitlen,a)*seed+ZeroExt(self.n_bitlen,b), ZeroExt(self.n_bitlen,n)))
+            seed = simplify(URem(ZeroExt(self.n_bitlen,a)*seed+\
+                ZeroExt(self.n_bitlen,b), ZeroExt(self.n_bitlen,n)))
             s.add(v == LShR(seed,self.truncation))
 
         start_time, last_time = time(), time()
@@ -1262,7 +1277,8 @@ class Breaker(truncated_lcg):
         u = (U * v)
         self.shorten(u)
 
-        A = DomainMatrix.from_Matrix(Matrix(k, k, lambda i, j: L[i, j])).convert_to(QQ)
+        A = DomainMatrix.from_Matrix(Matrix(k, k, lambda i,\
+             j: L[i, j])).convert_to(QQ)
         b = DomainMatrix.from_Matrix(Matrix(k, 1, lambda i, j: u[i, 0])).convert_to(QQ)
         M = (A.inv() * b).to_Matrix()
 
@@ -1271,7 +1287,8 @@ class Breaker(truncated_lcg):
         seed = BitVec('seed', self.n_bitlen)
         
         s = Solver()
-        s.add(ULT(seed,self.n),next_st == simplify(URem(self.a * ZeroExt(self.n_bitlen, seed) + self.b, self.n)))
+        s.add(ULT(seed,self.n),next_st == simplify(URem(self.a * 
+        ZeroExt(self.n_bitlen, seed) + self.b, self.n)))
         
         guess = []
 
