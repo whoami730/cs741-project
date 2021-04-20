@@ -1,6 +1,6 @@
 import random
 from time import time
-from twister import *
+from mersenne import *
 import os
 
 def urandbits(n):
@@ -171,6 +171,23 @@ def state_recovery_rand():
     print(sum(i==j for i,j in zip(recovered_state,state_orig)))
     assert recovered_state == state_orig
     print("success")
+
+def compare_ut_sat_ut(num_outs=10000):
+    """
+    Comparing the performance of Breaker.untamper_sat and
+    Breaker.ut i.e. speed comparison of sat and direct
+    algorighm
+    """
+    outputs = [random.getrandbits(32) for i in range(num_outs)]
+    b = BreakerPy()
+    start_time = time()
+    ut1 = list(map(b.ut,outputs))
+    time_ut = time()-start_time
+    start_time = time()
+    ut2 = list(map(b.untamper_sat,outputs))
+    time_ut_sat = time()-start_time
+    print(f'time taken by ut: {time_ut}, time taken by sat: {time_ut_sat}')
+    return time_ut_sat/time_ut
 
 
 
