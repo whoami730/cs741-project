@@ -1,4 +1,10 @@
 # Project -  Analysis, state and seed recovery of RNGs
+
+1. Himanshu Sheoran 170050105
+2. Lakshya Kumar 170050033
+3. Sahil Jain 180050089
+4. Yash Ajitbhai Parmar 170050004
+
 ## Abstract
 Study of (novel) methods for seed and state recovery using reduced number of outputs for general purpose random number generators like `MT19937`, `MT19937-64`, `LCGs & Truncated LCGs`, `LSFRs`, using **SMT/SAT solvers**.
 
@@ -353,7 +359,7 @@ To solve a set of linear equations of the form $S_i+v+\Lambda_1S_i+ v-1 + ... + 
 
 With each iteration, the algorithm calculates the **discrepancy** $d$ between the candidate and the actual feedback polynomial: 
 $$ d = S_k+c_1S_{k-1}+ ... + c_LS_{k-L} $$
-If the discrepancy is zero, the algorithm assumes that $C$ is a valid candidate and continues. Else, if $d≠0$, the candidate $C$ must be adjusted such, that a recalculation of the discrepancy would lead to $d = 0$. This re-adjustments is done as follows: 
+If the discrepancy is zero, the algorithm assumes that $C$ is a valid candidate and continues. Else, if $d \ne 0$, the candidate $C$ must be adjusted such, that a recalculation of the discrepancy would lead to $d = 0$. This re-adjustments is done as follows: 
 $$ C= C- (d/b)X^mB $$
 where,\
 $B$ is a copy of the *last candidate* $C$ since $L$ was updated,\
@@ -448,7 +454,7 @@ $x_i =  X_i \gg t, X_{i+1} = (a*X_i + b) \% m \implies X_i = 2^t * x_i + y_i$, w
 The forthcoming attack is borrowed from this [paper](https://www.math.cmu.edu/~af1p/Texfiles/RECONTRUNC.pdf) on reconstructing truncated integer variables satisfying linear congruences. 
 
 Consider the matrix $L$ defined for some $k$ as -
-$$\begin{bmatrix}
+<!-- $$\begin{bmatrix}
     a & -1 & 0 & \dots & 0\\
     a^2 & 0 & -1 & \dots & 0\\
     \vdots & \vdots & \vdots & \ddots & \vdots\\
@@ -519,7 +525,7 @@ $$L' \begin{bmatrix}
     x_2\\
     \vdots\\
     x_k\\
-\end{bmatrix} \right) (\% M) = \text{(let) } c (\% M)$$
+\end{bmatrix} \right) (\% M) = \text{(let) } c (\% M)$$ -->
 
 Consider the LLL reduced basis for $L'$ denoted by $L'_r$, and consider $c_r$ such that each element of $c_r$ is $\le \frac{M}{2}$ in absolute value(ensuring $c_r (\% M) = c (\% M)$). Then, the mentioned paper shows that there exists **atmost one integral "small" solution** to the (non-modular) linear equation $L'_r \cdot y = c_r$, where $y$ denotes the vector consisting of entries $y_1$ upto $y_k$! Thus, we can solve for $y$ by computing the inverse of $L'_r$. Thus, the obtained first coordinate of $y$ would be our $y_1$; and we can then obtain $X_1$ as $X_1 = 2^t * x_1 + y_1$. The only catch here is whether this `small` solution indeed is the correct solution, that is whether our expected $y$ indeed satisfies the mentioned norm bounds. The paper proves that for random LCGs this holds true with a good probability, given sufficient number of output-bits and sufficient information to be guessed.
 
@@ -1282,9 +1288,3 @@ class Breaker(truncated_lcg):
         print(f"Total time taken(LLL) : {time()-start_time}")
         return guess
 ```
-
-# Team members
-1. Himanshu Sheoran 170050105
-2. Lakshya Kumar 170050033
-3. Sahil Jain 180050089
-4. Yash Ajitbhai Parmar 170050004
