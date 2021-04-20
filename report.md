@@ -448,78 +448,16 @@ $x_i =  X_i \gg t, X_{i+1} = (a*X_i + b) \% m \implies X_i = 2^t * x_i + y_i$, w
 The forthcoming attack is borrowed from this [paper](https://www.math.cmu.edu/~af1p/Texfiles/RECONTRUNC.pdf) on reconstructing truncated integer variables satisfying linear congruences. 
 
 Consider the matrix $L$ defined for some $k$ as -
-$$\begin{bmatrix}
-    a & -1 & 0 & \dots & 0\\
-    a^2 & 0 & -1 & \dots & 0\\
-    \vdots & \vdots & \vdots & \ddots & \vdots\\
-    a^{k-1} & 0 & 0 & \dots & -1\\
-    M & 0 & 0 & \dots & 0\\
-    0 & M & 0 & \dots & 0\\
-    0 & 0 & M & \dots & 0\\
-    \vdots & \vdots & \vdots & \ddots & \vdots\\
-    0 & 0 & 0 & \dots & M\\
-\end{bmatrix} \implies L \begin{bmatrix}
-    X_1\\
-    X_2\\
-    X_3\\
-    \vdots\\
-    X_k\\
-\end{bmatrix} = \begin{bmatrix}
-    b + M \alpha_1\\
-    b(1+a) + M \alpha_2\\
-    \vdots\\
-    b(1+a+\dots+a^{k-2}) + M \alpha_{k-1}\\
-    M X_1\\
-    M X_2\\
-    M X_3\\
-    \vdots\\
-    M X_k\\
-\end{bmatrix} = \begin{bmatrix}
-   
-    0\\
-    0\\
-    \vdots\\
-    0\\
-\end{bmatrix} (\% M)$$
+
+![](l1.png)
+
 since $X_i = [a^{i-1} * X_1 + b(1 + a + \dots + a^{i-2})] \% M = a^{i-1} * X_1 + b \frac{a^{i-1}-1}{a-1} + M \alpha_{i-1}$ for some $\alpha_{i-1} \in \Z$. Note that here $L$ is a $2k-1 \times k$ lattice, and we also observe that the bottom $k-1$ rows can all be written as linear combinations of the top $k$ rows, and therefore, the top $k$ rows form a basis for this lattice. Thus, we can rewrite it as:
-$$L' = \begin{bmatrix}
-    a & -1 & \dots & 0\\
-    a^2 & 0 & \dots & 0\\
-    \vdots & \vdots & \ddots & \vdots\\
-    a^{k-1} & 0 & \dots & -1\\
-    M & 0 & \dots & 0\\
-    \end{bmatrix} \implies L' \begin{bmatrix}
-    X_1\\
-    X_2\\
-    X_3\\
-    \vdots\\
-    X_k\\
-\end{bmatrix} = \begin{bmatrix}
-    b\\
-    b\frac{a^2-1}{a-1}\\
-    \vdots\\
-    b\frac{a^{k-1}-1}{a-1}\\
-    0\\
-\end{bmatrix} (\% M)$$
+
+![](l2.png)
+
 Also, since $X_i = 2^t * x_i + y_i$, the above equation can be re-written as:
-$$L' \begin{bmatrix}
-    y_1\\
-    y_2\\
-    y_3\\
-    \vdots\\
-    y_k\\
-\end{bmatrix} = \left( b * \begin{bmatrix}
-    1\\
-    \frac{a^2-1}{a-1}\\
-    \vdots\\
-    \frac{a^{k-1}-1}{a-1}\\
-    0\\
-\end{bmatrix} + 2^t * L' * \begin{bmatrix}
-    x_1\\
-    x_2\\
-    \vdots\\
-    x_k\\
-\end{bmatrix} \right) (\% M) = \text{(let) } c (\% M)$$
+
+![](l3.png)
 
 Consider the LLL reduced basis for $L'$ denoted by $L'_r$, and consider $c_r$ such that each element of $c_r$ is $\le \frac{M}{2}$ in absolute value(ensuring $c_r (\% M) = c (\% M)$). Then, the mentioned paper shows that there exists **atmost one integral "small" solution** to the (non-modular) linear equation $L'_r \cdot y = c_r$, where $y$ denotes the vector consisting of entries $y_1$ upto $y_k$! Thus, we can solve for $y$ by computing the inverse of $L'_r$. Thus, the obtained first coordinate of $y$ would be our $y_1$; and we can then obtain $X_1$ as $X_1 = 2^t * x_1 + y_1$. The only catch here is whether this `small` solution indeed is the correct solution, that is whether our expected $y$ indeed satisfies the mentioned norm bounds. The paper proves that for random LCGs this holds true with a good probability, given sufficient number of output-bits and sufficient information to be guessed.
 
