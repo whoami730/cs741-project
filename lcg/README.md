@@ -109,7 +109,8 @@ We have implemented both the aforementioned attacks in python3. The attack on LC
 One solution is to modify our original algorithm to include $X_0$ in the unknown vector $y$; however since $X_0$ does not have a known $x_0$ part, this modification may actually yield results much worse, since $X_0$ is a possibly large vector, and hence the norm bounds may now be violated! We had tried this method earlier, but it couldn't correctly recover the seed in many cases, especially the cases in which $a$ was not co-prime with $M$!  
 Another possible solution is to realize that $X_0$ in most cases needn't be unique, since the only outputs we obtain start from $X_1$! Thus, there could be multiple possible $X_0$'s which could yield the same sequence. We rely on our algorithm to obtain $X_1$, and then a SAT solver is incorporated to find out all possible $X_0$ which could yield the expected $X_1$. This way, we do not have to rely on the existence of the modular inverse of $a$, and several possible existing seeds can be recovered easily.
 
-Another attack on truncated LCGs was implemented which doesn't rely on the knowledge or absence thereof of the parameters of the (truncated) LCG. This attack proceeds by modelling the parameter recovery problem for LCG as a [Satisfiability Modulo Theories](https://en.wikipedia.org/wiki/Satisfiability_modulo_theories) (SMT) decision problem.
+Another attack on truncated LCGs was implemented which doesn't rely on the knowledge or absence thereof of the parameters of the (truncated) LCG. This attack proceeds by modelling the parameter recovery problem for LCG as a [Satisfiability Modulo Theories](https://en.wikipedia.org/wiki/Satisfiability_modulo_theories) (SMT) decision problem.  
+We again used the SMT solver [Z3Prover](https://github.com/Z3Prover/z3) to 
 
 
 ## References

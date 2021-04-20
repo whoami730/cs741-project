@@ -1,7 +1,9 @@
+from tqdm import tqdm
 from fastecdsa.curve import P256
 from fastecdsa.point import Point
 from gmpy2 import *
 import random, os
+from time import time
 
 
 def xgcd(a, b):
@@ -119,7 +121,7 @@ class Breaker(Dual_EC):
             Given the output 240 bits, we want to obtain the possible points r*Q could be.
         '''
         l = []
-        for i in range(2 ** 16):
+        for i in tqdm(range(2 ** 16)):
             poss_x = (i << 240) + output
             a, b = self.solution_exists(poss_x)
             if a:
@@ -173,5 +175,7 @@ if __name__ == '__main__':
 
     rand_seed = urandbits(256)
     d = Breaker(rand_seed)
+    start_t = time()
     m = d.break_dec()
     print(m)
+    print("Time taken: ", time()-start_t)
