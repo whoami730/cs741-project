@@ -371,16 +371,16 @@ The new discrepancy can now easily be computed as $d = d-(d/b)b = d-d = 0$. This
 The Geffe generator consists of three LFSRs: LFSR-1, LFSR-2 and LFSR-3 using primitive feedback polynomials. If we denote the outputs of these registers by $x_1$, $x_2$ and $x_3$, respectively, then the Boolean function that combines the three registers to provide the generator output is given by
 $$ F(x_1, x_2, x_3) = (x_1 \land x_2) \oplus (\lnot x_1 \land x_2) $$
 There are $2^3 = 8$ possible values for the outputs of the three registers, and the value of this combining function for each of them is shown in the table below: 
-| $x_1$  | $x_2$  | $x_3$  | $F(x_1, x_2, x_3)$  |
-|:---:|:---:|:---:|:---:|
-|  0 | 0  | 0  | 0  |
-|  0 | 0  | 1  | 1  |
-|  0 | 1  | 0  | 0  |
-|  0 | 1  | 1  | 1  |
-|  1 | 0  | 0  | 0  |
-|  1 | 0  | 1  | 0  |
-|  1 | 1  | 0  | 1  |
-|  1 | 1  | 1  | 1  |
+| $x_1$ | $x_2$ | $x_3$ | $F(x_1, x_2, x_3)$ |
+| :---: | :---: | :---: | :----------------: |
+|   0   |   0   |   0   |         0          |
+|   0   |   0   |   1   |         1          |
+|   0   |   1   |   0   |         0          |
+|   0   |   1   |   1   |         1          |
+|   1   |   0   |   0   |         0          |
+|   1   |   0   |   1   |         0          |
+|   1   |   1   |   0   |         1          |
+|   1   |   1   |   1   |         1          |
 
 Consider the output of the third register, $x_3$. The table above makes it clear that of the 8 possible outputs of $x_3$, 6 of them are equal to the corresponding value of the generator output, $F(x_1, x_2, x_3)$, i.e. $x_3 = F( x_1, x_2,x_3 )$ in **75%** of all possible cases. This correlation can be exploited to have a brute force search on the key bits of LSFR-3, since on correct key we would observe an advantage of 1/4 over any other key.
 This will reduce the brute forcing of 3 LFSRs to only 2 LFSRs!!\
@@ -397,18 +397,18 @@ We abstracted the Geffe Generated in a manner that it would return a boolean fun
 ### Results
 We observed significantly faster runtimes using the Z3 boolean model as compared to brute force correlation attack.
 
-| Specifications | Time taken using brute-force| Time taken using Z3 solver |
-|:---| :---: | :---: |
-| 10-bit seed each, 128 bit output | 01.50s | 0.25s |
-| 12-bit seed each, 128 bit output | 06.25s | 0.26s |
-| 12-bit seed each, 256 bit output | 12.50s | 0.41s |
-| 12-bit seed each, 350 bit output | 16.62s | 0.54s |
-| 13-bit seed each, 256 bit output | 25.08s | 0.74s |
-| 14-bit seed each, 256 bit output | 52.30s | 1.12s |
-| 16-bit seed each, 256 bit output | 222.66s | 4.53s |
-| 16-bit seed each, 512 bit output | 449.29s | 5.99s |
-| 18-bit seed each, 256 bit output | 936.59s | 29.33s |
-<!-- | 24-bit seed each, 2048 bit output | - Timout - | 400.45s | -->
+| Specifications                   |   Time taken using brute-force    | Time taken using Z3 solver |
+| :------------------------------- | :-------------------------------: | :------------------------: |
+| 10-bit seed each, 128 bit output |              01.50s               |           0.25s            |
+| 12-bit seed each, 128 bit output |              06.25s               |           0.26s            |
+| 12-bit seed each, 256 bit output |              12.50s               |           0.41s            |
+| 12-bit seed each, 350 bit output |              16.62s               |           0.54s            |
+| 13-bit seed each, 256 bit output |              25.08s               |           0.74s            |
+| 14-bit seed each, 256 bit output |              52.30s               |           1.12s            |
+| 16-bit seed each, 256 bit output |              222.66s              |           4.53s            |
+| 16-bit seed each, 512 bit output |              449.29s              |           5.99s            |
+| 18-bit seed each, 256 bit output |              936.59s              |           29.33s           |
+| <!--                             | 24-bit seed each, 2048 bit output |         - Timout -         | 400.45s | --> |
 While the runtime of discovered correlation attack is observably *exponential* in the number of bits of LFSRs whereas, observed runtime of our approach is *subexponential/polynomial*, since boolean constraints are relatively sparse and SAT solvers are highly optimized in solving such boolean constraints.  
 
 ## Challenges / Difficulties
@@ -454,84 +454,22 @@ $x_i =  X_i \gg t, X_{i+1} = (a*X_i + b) \% m \implies X_i = 2^t * x_i + y_i$, w
 The forthcoming attack is borrowed from this [paper](https://www.math.cmu.edu/~af1p/Texfiles/RECONTRUNC.pdf) on reconstructing truncated integer variables satisfying linear congruences. 
 
 Consider the matrix $L$ defined for some $k$ as -
-<!-- $$\begin{bmatrix}
-    a & -1 & 0 & \dots & 0\\
-    a^2 & 0 & -1 & \dots & 0\\
-    \vdots & \vdots & \vdots & \ddots & \vdots\\
-    a^{k-1} & 0 & 0 & \dots & -1\\
-    M & 0 & 0 & \dots & 0\\
-    0 & M & 0 & \dots & 0\\
-    0 & 0 & M & \dots & 0\\
-    \vdots & \vdots & \vdots & \ddots & \vdots\\
-    0 & 0 & 0 & \dots & M\\
-\end{bmatrix} \implies L \begin{bmatrix}
-    X_1\\
-    X_2\\
-    X_3\\
-    \vdots\\
-    X_k\\
-\end{bmatrix} = \begin{bmatrix}
-    b + M \alpha_1\\
-    b(1+a) + M \alpha_2\\
-    \vdots\\
-    b(1+a+\dots+a^{k-2}) + M \alpha_{k-1}\\
-    M X_1\\
-    M X_2\\
-    M X_3\\
-    \vdots\\
-    M X_k\\
-\end{bmatrix} = \begin{bmatrix}
-   
-    0\\
-    0\\
-    \vdots\\
-    0\\
-\end{bmatrix} (\% M)$$
+
+![](l1.png)
+
 since $X_i = [a^{i-1} * X_1 + b(1 + a + \dots + a^{i-2})] \% M = a^{i-1} * X_1 + b \frac{a^{i-1}-1}{a-1} + M \alpha_{i-1}$ for some $\alpha_{i-1} \in \Z$. Note that here $L$ is a $2k-1 \times k$ lattice, and we also observe that the bottom $k-1$ rows can all be written as linear combinations of the top $k$ rows, and therefore, the top $k$ rows form a basis for this lattice. Thus, we can rewrite it as:
-$$L' = \begin{bmatrix}
-    a & -1 & \dots & 0\\
-    a^2 & 0 & \dots & 0\\
-    \vdots & \vdots & \ddots & \vdots\\
-    a^{k-1} & 0 & \dots & -1\\
-    M & 0 & \dots & 0\\
-    \end{bmatrix} \implies L' \begin{bmatrix}
-    X_1\\
-    X_2\\
-    X_3\\
-    \vdots\\
-    X_k\\
-\end{bmatrix} = \begin{bmatrix}
-    b\\
-    b\frac{a^2-1}{a-1}\\
-    \vdots\\
-    b\frac{a^{k-1}-1}{a-1}\\
-    0\\
-\end{bmatrix} (\% M)$$
+
+![](l2.png)
+
 Also, since $X_i = 2^t * x_i + y_i$, the above equation can be re-written as:
-$$L' \begin{bmatrix}
-    y_1\\
-    y_2\\
-    y_3\\
-    \vdots\\
-    y_k\\
-\end{bmatrix} = \left( b * \begin{bmatrix}
-    1\\
-    \frac{a^2-1}{a-1}\\
-    \vdots\\
-    \frac{a^{k-1}-1}{a-1}\\
-    0\\
-\end{bmatrix} + 2^t * L' * \begin{bmatrix}
-    x_1\\
-    x_2\\
-    \vdots\\
-    x_k\\
-\end{bmatrix} \right) (\% M) = \text{(let) } c (\% M)$$ -->
+
+![](l3.png)
 
 Consider the LLL reduced basis for $L'$ denoted by $L'_r$, and consider $c_r$ such that each element of $c_r$ is $\le \frac{M}{2}$ in absolute value(ensuring $c_r (\% M) = c (\% M)$). Then, the mentioned paper shows that there exists **atmost one integral "small" solution** to the (non-modular) linear equation $L'_r \cdot y = c_r$, where $y$ denotes the vector consisting of entries $y_1$ upto $y_k$! Thus, we can solve for $y$ by computing the inverse of $L'_r$. Thus, the obtained first coordinate of $y$ would be our $y_1$; and we can then obtain $X_1$ as $X_1 = 2^t * x_1 + y_1$. The only catch here is whether this `small` solution indeed is the correct solution, that is whether our expected $y$ indeed satisfies the mentioned norm bounds. The paper proves that for random LCGs this holds true with a good probability, given sufficient number of output-bits and sufficient information to be guessed.
 
 ## Our Work
 We have implemented both the aforementioned attacks in python3. The attack on LCG allows us to recover the seed easily. However, the lattice-based attack on truncated LCG is somewhat different in the sense that the method only allows us to recover $X_1$, which is not the seed we seek.  
-<!-- TODO: Is this necessary? -->
+
 One solution is to modify our original algorithm to include $X_0$ in the unknown vector $y$; however since $X_0$ does not have a known $x_0$ part, this modification may actually yield results much worse, since $X_0$ is a possibly large vector, and hence the norm bounds may now be violated! We had tried this method earlier, but it couldn't correctly recover the seed in many cases, especially the cases in which $a$ was not co-prime with $M$!  
 Another possible solution is to realize that $X_0$ in most cases needn't be unique, since the only outputs we obtain start from $X_1$! Thus, there could be multiple possible $X_0$'s which could yield the same sequence. We rely on our algorithm to obtain $X_1$, and then a SAT solver is incorporated to find out all possible $X_0$ which could yield the expected $X_1$. This way, we do not have to rely on the existence of the modular inverse of $a$, and several possible existing seeds can be recovered easily.
 
