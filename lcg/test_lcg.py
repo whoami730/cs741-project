@@ -34,7 +34,7 @@ def known_trunc_binary_field(num_out=8, truncation=16):
     brkr.break_lattice(l)
     brkr.break_sat(l)
 
-def unknown_a_b_trunc_2(num_out=16, truncation=8):
+def unknown_a_trunc(num_out=16, truncation=8):
     p = 2**32
     a = 2*randint(0,(p-1)//2)
     b = randint(0, p - 1)
@@ -42,7 +42,7 @@ def unknown_a_b_trunc_2(num_out=16, truncation=8):
     
     print(f"{seed_original = } {a = } {b = } {p = }")
 
-    brkr = Breaker(seed_original, a, b, p, truncation,known_a=False,known_b=False,known_n=True)
+    brkr = Breaker(seed_original, a, b, p, truncation,known_a=False,known_b=True,known_n=True)
     l = []
     for i in range(num_out):
         l.append(brkr.next())
