@@ -349,17 +349,17 @@ LFSRs were used in stream ciphers in early years of internet. Later on, Berlekam
 The Berlekamp–Massey algorithm is an algorithm that will find the shortest linear feedback shift register (LFSR) for a given binary output sequence. \
 This algorithm starts with the assumption that the length of the LSFR is $l = 1$, and then *iteratively* tries to generate the known sequence and if it succeeds, everything is well, if not, $l$ must be *increased*. 
 
-To solve a set of linear equations of the form $S_i+ν+Λ_1S_i+ ν−1 + ... + Λ_{ν−1}S_{i + 1} + Λ_νS_i=0$, a potential instance of $Λ$ is constructed step by step. Let $C$ denote such a potential candidate, it is sometimes also called the "connection polynomial" or the "error locator polynomial" for L errors, and defined as $C = c_LX_L + c_{L−1}X_{L−1} + ...+ c_2X_2 + c_1X + 1$. The goal of the Berlekemp - Massey algorithm is to now determine the minimal degree $L$ and to construct $C$ such, that $S_n+c_1S_{n−1} + ... + c_LS_{n−L}= 0, \forall L≤n≤N−1$, where $N$ is the total number of syndromes, and $n$ is the index variable used to loop through the syndromes from 0 to N−1.
+To solve a set of linear equations of the form $S_i+v+\Lambda_1S_i+ v-1 + ... + \Lambda_{v-1}S_{i + 1} + \Lambda_vS_i=0$, a potential instance of $\Lambda$ is constructed step by step. Let $C$ denote such a potential candidate, it is sometimes also called the "connection polynomial" or the "error locator polynomial" for L errors, and defined as $C = c_LX_L + c_{L-1}X_{L-1} + ...+ c_2X_2 + c_1X + 1$. The goal of the Berlekemp - Massey algorithm is to now determine the minimal degree $L$ and to construct $C$ such, that $S_n+c_1S_{n-1} + ... + c_LS_{n-L}= 0, \forall L\leq n \leq N-1$, where $N$ is the total number of syndromes, and $n$ is the index variable used to loop through the syndromes from 0 to N-1.
 
 With each iteration, the algorithm calculates the **discrepancy** $d$ between the candidate and the actual feedback polynomial: 
-$$ d = S_k+c_1S_{k−1}+ ... + c_LS_{k−L} $$
+$$ d = S_k+c_1S_{k-1}+ ... + c_LS_{k-L} $$
 If the discrepancy is zero, the algorithm assumes that $C$ is a valid candidate and continues. Else, if $d≠0$, the candidate $C$ must be adjusted such, that a recalculation of the discrepancy would lead to $d = 0$. This re-adjustments is done as follows: 
-$$ C= C− (d/b)X^mB $$
+$$ C= C- (d/b)X^mB $$
 where,\
 $B$ is a copy of the *last candidate* $C$ since $L$ was updated,\
 $b$ a copy of the *last discrepancy* since $L$ was updated,\
 and the multiplication by X^m is but an index shift. \
-The new discrepancy can now easily be computed as $d = d−(d/b)b = d−d = 0$. This above algorithm can further be simplified for modulo 2 case. See Wiki.
+The new discrepancy can now easily be computed as $d = d-(d/b)b = d-d = 0$. This above algorithm can further be simplified for modulo 2 case. See Wiki.
 
 ### Geffe Generator
 The Geffe generator consists of three LFSRs: LFSR-1, LFSR-2 and LFSR-3 using primitive feedback polynomials. If we denote the outputs of these registers by $x_1$, $x_2$ and $x_3$, respectively, then the Boolean function that combines the three registers to provide the generator output is given by
@@ -587,6 +587,8 @@ If only one output(`240` bits) can be obtained from the RNG, $~2^15$ possible st
 
 The values of $P$ and $Q$ which were used in the actual implementation had been publicised by NSA to be the ones which allowed "fast computations", nobody knows where these values actually came from! Since the values were chosen by themselves, it is unknown whether they actually had utilized this backdoor but the existence of a backdoor in a popular PRNG is very troublesome to the cryptographic community in itself.
 
+\pagebreak
+
 # Refrences
 ## References - Mersenne
 - [The Mersenne Twister](http://www.quadibloc.com/crypto/co4814.htm) http://www.quadibloc.com/crypto/co4814.htm
@@ -684,7 +686,7 @@ class LFSR:
     """
 
     def __init__(self, seed, poly):
-        assert len(seed) == len(poly), "Error: Seed and taps poly  should be of same length"
+        assert len(seed) == len(poly), "Error: Seed and taps should be of same length"
         self._seed = seed.copy()        # Sn, Sn-1, ..., S0
         self._comb_poly = poly          # C0, C1, ..., Cn
     
@@ -709,7 +711,8 @@ class LFSR:
 - This class is also an abstraction. Depending on our utility we can use the same instance to guess the seeds generated using same combination polynomial.
 ```python
 class Geffe:
-    """ Geffe Generator's with solver in z3 and brute force as well. We need to know the combination polynomial beforehand """
+    """ Geffe Generator's with solver in z3 and brute force as well. 
+    We need to know the combination polynomial beforehand """
 
     def __init__(self, l1, l2, l3, c1, c2, c3):
         self._l1, self._l2, self._l3 = l1, l2, l3
@@ -783,7 +786,8 @@ class Geffe:
 - Finding the seed of LFSR given some output bits. We need to guess the number of bits in the seeds though.
 ```python
 class UnLFSR_Z3:
-    """ Similar to berlekamp in the sense that it finds the seed and the comb poly using z3 solver. """
+    """ Similar to berlekamp in the sense that it finds the seed 
+    and the comb poly using z3 solver. """
 
     def __init__(self, opt, degree_guess):
         """ opt is list of 0s and 1s. 1st bit 1st """
@@ -815,7 +819,8 @@ def str_to_lst_int(string):
     return list(map(int, string))
 
 def test_n_bit_k_steps(n: int, k: int):
-    """ Generate seed and combination polynomial and generate some eandom bits """
+    """ Generate seed and combination polynomial,
+     generate some eandom bits and test the model"""
     rndm_seed = bin(random.getrandbits(n))[2:]
     seed = rndm_seed + '0'*(n-len(rndm_seed))
     rndm_poly = bin(random.getrandbits(n))[2:]
@@ -854,7 +859,8 @@ test_n_bit_k_steps(2048,4096)
 
 # Test Geffes generator
 def test_geffe_generator(num_opt_bits, size_taps):
-    """ Given n output bits and taps of all the 3 LFSRs, find the actual seeds of LFSRs """
+    """ Given n output bits and taps of all the 3 LFSRs,
+    find the actual seeds of LFSRs """
     # c1 = bin(random.getrandbits(size_taps))[2:]
     # c1 = c1 + '0'*(size_taps - len(c1))
     c1 = '11011' + '0'*(size_taps - 5)
@@ -878,7 +884,8 @@ def test_geffe_generator(num_opt_bits, size_taps):
     ll3 = bin(random.getrandbits(size_taps))[2:]
     ll3 = ll3 + '0'*(size_taps - len(ll3))
 
-    geffe_normal = Geffe(str_to_lst_int(ll1), str_to_lst_int(ll2), str_to_lst_int(ll3),  str_to_lst_int(c1), str_to_lst_int(c2), str_to_lst_int(c3))
+    geffe_normal = Geffe(str_to_lst_int(ll1), str_to_lst_int(ll2), str_to_lst_int(ll3),\
+          str_to_lst_int(c1), str_to_lst_int(c2), str_to_lst_int(c3))
 
     opt = geffe_normal.get_seqn(num_opt_bits)
     geffe = Geffe(l1, l2, l3, list(map(int,c1)), list(map(int,c2)), list(map(int,c3)))
