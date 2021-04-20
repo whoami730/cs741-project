@@ -168,15 +168,15 @@ if __name__ == "__main__":
     a = random.randint(0,p-1)
     b = random.randint(0,p-1)
     seed_original = random.randint(0,p-1)
-    num_out = 6
-    truncation = 4
+    num_out = 4
+    truncation = 24
     
     print(f"{seed_original = } {a = } {b = } {p = }")
 
-    brkr = Breaker(seed_original, a, b, p, truncation,known_a=False,known_b=False,known_n=True)
+    brkr = Breaker(seed_original, a, b, p, truncation,known_a=True,known_b=True,known_n=True)
     l = []
     for i in range(num_out):
         l.append(brkr.next())
     
     brkr.break_lattice(l)
-    brkr.break_sat(l)
+    # brkr.break_sat(l)
