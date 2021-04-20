@@ -173,7 +173,7 @@ class Geffe:
         # >75% match of opt with x3 i.e. lfsr2
         possible_seeds2 = []
         m2 = 0
-        for seed2 in tqdm.tqdm(itertools.product('01', repeat=len(lfsr2._comb_poly))):
+        for seed2 in tqdm.tqdm(itertools.product('01', repeat=len(lfsr2._comb_poly)), total=2**len(lfsr2._comb_poly)):
             lfsr2.set_seed(list(map(int,seed2)))
             x3 = lfsr2.get_lfsr(len(opt))
             corr = sum(x==y for x,y in zip(opt, x3))
@@ -186,7 +186,7 @@ class Geffe:
         # > 75% match of opt with x2 i.e. lfsr1
         possible_seeds1 = []
         m1 = 0
-        for seed1 in tqdm.tqdm(itertools.product('01', repeat=len(lfsr1._comb_poly))):
+        for seed1 in tqdm.tqdm(itertools.product('01', repeat=len(lfsr1._comb_poly)), total=2**len(lfsr2._comb_poly)):
             lfsr1.set_seed(list(map(int,seed1)))
             x2 = lfsr1.get_lfsr(len(opt))
             corr = sum(x==y for x,y in zip(opt, x2))

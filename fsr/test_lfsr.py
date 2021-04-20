@@ -85,4 +85,4 @@ def test_geffe_generator(num_opt_bits, size_taps):
     # print(ll2, l2_normal, ll3, l3_normal)
     print((ll2 == l2_normal) & (ll3 == l3_normal))
 
-test_geffe_generator(1024, 24)
+test_geffe_generator(200, 16)
