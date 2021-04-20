@@ -28,6 +28,7 @@ Through our project, we also want to encourage the use of SAT solvers for valida
 3. [LCG](#linear-congruential-generator---lcg)
 4. [Dual_EC_DRBG](#dual-ec-drbg---kleptographic-backdoor)
 
+\pagebreak 
 # Mersenne Twister
 Mersenne Twister (MT) is by far the most widely used general-purpose PRNG, which derives its name from the fact that its period is the Mersenne prime $2^{19937} -1$
 
@@ -61,6 +62,8 @@ The state needed for a Mersenne Twister implementation is an array of $n$ values
 $$x_i = f \times (x_{i-1} \oplus (x_{i-1} \gg (w-2))) + i$$
 
 for $i$ from 1 to n-1. The first value the algorithm then generates is based on $x_n$. [See for details](#mersenne-gif)
+
+\pagebreak
 
 While implementing, we need to consider only three things   
 1. State initialization i.e. seeding
@@ -328,8 +331,9 @@ Other drawback of our approach is that SMT solvers operate in the realm of first
 Another drawback can be when there are more than one possible seed/state to produce a given set of outputs, SAT solvers are designed and optimized to find a single satisfying assignment, finding successive assignments, may or may not translate equivalently.
 
 Yet another drawback is lack of parallelism. The current design of SAT/SMT solvers is massively single threaded and may not use the full capabilities and cores of the machine to find a satisfying assignment.
-
 - [Refrences](#references---mersenne)
+
+\pagebreak
 
 # LFSRs - Linear Feedback Shift Registers
 Linear Feeback shift registers are one of the easiest and simplest way to generate seemingly random bits from known bits. The word linear suggests that the algorithm is linear in nature, as in, the next output bit depends linearly on previous bit(s).  
@@ -370,8 +374,9 @@ The new discrepancy can now easily be computed as $d = d-(d/b)b = d-d = 0$. This
 ### Geffe Generator
 The Geffe generator consists of three LFSRs: LFSR-1, LFSR-2 and LFSR-3 using primitive feedback polynomials. If we denote the outputs of these registers by $x_1$, $x_2$ and $x_3$, respectively, then the Boolean function that combines the three registers to provide the generator output is given by
 $$ F(x_1, x_2, x_3) = (x_1 \land x_2) \oplus (\lnot x_1 \land x_2) $$
-There are $2^3 = 8$ possible values for the outputs of the three registers, and the value of this combining function for each of them is shown in the table below: 
-| $x_1$ | $x_2$ | $x_3$ | $F(x_1, x_2, x_3)$ |
+There are $2^3 = 8$ possible values for the outputs of the three registers, and the value of this combining function for each of them is shown in the table below:  
+
+| x1 | x2 | x3 | F(x1, x2, x3) |
 | :---: | :---: | :---: | :----------------: |
 |   0   |   0   |   0   |         0          |
 |   0   |   0   |   1   |         1          |
@@ -417,9 +422,7 @@ While modeling the LFSR into a SAT solver we ran into a problem, rather a limita
 
 ## Limitations / Assumptions
 ### Berlekamp-Massey VS SAT modeling
-For finding the minimum degree feedback polynomial using SAT encoding, we ran into the problem of not knowing the degree of the polynomial, thus we need to enumerate over the possible guesses of the degree and checking the satisfiability of the generated boolean formula over LSFR state bits and output bits.
-
-Since we have no expected bounds on runtimes, we could not conclude termination while recovering the minimal polynomial using the SAT encoding approach.
+For finding the minimum degree feedback polynomial using SAT encoding, we ran into the problem of not knowing the degree of the polynomial, thus we need to enumerate over the possible guesses of the degree and checking the satisfiability of the generated boolean formula over LSFR state bits and output bits. Since we have no expected bounds on runtimes, we could not conclude termination while recovering the minimal polynomial using the SAT encoding approach.
 
 ## Future Scope
 We explored a known weak combiner generator where the correlations between various LFSR bits and the generated output bits is obvious, the solver might me internally exploiting some higher order correlation which might be difficult to discover.
@@ -427,6 +430,8 @@ We explored a known weak combiner generator where the correlations between vario
 This approach can be extended to different combiner generators and seemingly undiscovered correlations can be expoilted in a similar efficient way.
 
 - [Refrences](#references---lfsr)
+
+\pagebreak
 
 # Linear Congruential Generator - LCG
 Linear Congruential Generator(LCG) is a method of generating a sequence of pseudo-randomized numbers using modular arithmetic. This method has seen quite widespread usage since the theory behind this method is pretty easy to understand and is also easy to implement as well as fast and require minimal memory, especially on computer hardware. However, they are as secure as it may seem from their popularity.
@@ -457,7 +462,7 @@ Consider the matrix $L$ defined for some $k$ as -
 
 ![](l1.png)
 
-since $X_i = [a^{i-1} * X_1 + b(1 + a + \dots + a^{i-2})] \% M = a^{i-1} * X_1 + b \frac{a^{i-1}-1}{a-1} + M \alpha_{i-1}$ for some $\alpha_{i-1} \in \Z$. Note that here $L$ is a $2k-1 \times k$ lattice, and we also observe that the bottom $k-1$ rows can all be written as linear combinations of the top $k$ rows, and therefore, the top $k$ rows form a basis for this lattice. Thus, we can rewrite it as:
+since $X_i = [a^{i-1} * X_1 + b(1 + a + \dots + a^{i-2})] \% M = a^{i-1} * X_1 + b \frac{a^{i-1}-1}{a-1} + M \alpha_{i-1}$ for some $\alpha_{i-1} \in Z$. Note that here $L$ is a $2k-1 \times k$ lattice, and we also observe that the bottom $k-1$ rows can all be written as linear combinations of the top $k$ rows, and therefore, the top $k$ rows form a basis for this lattice. Thus, we can rewrite it as:
 
 ![](l2.png)
 
