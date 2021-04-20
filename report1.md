@@ -1,4 +1,10 @@
 # Project -  Analysis, state and seed recovery of RNGs
+
+1. Himanshu Sheoran 170050105
+2. Lakshya Kumar 170050033
+3. Sahil Jain 180050089
+4. Yash Ajitbhai Parmar 170050004
+
 ## Abstract
 Study of (novel) methods for seed and state recovery using reduced number of outputs for general purpose random number generators like `MT19937`, `MT19937-64`, `LCGs & Truncated LCGs`, `LSFRs`, using **SMT/SAT solvers**.
 
@@ -349,17 +355,17 @@ LFSRs were used in stream ciphers in early years of internet. Later on, Berlekam
 The Berlekamp–Massey algorithm is an algorithm that will find the shortest linear feedback shift register (LFSR) for a given binary output sequence. \
 This algorithm starts with the assumption that the length of the LSFR is $l = 1$, and then *iteratively* tries to generate the known sequence and if it succeeds, everything is well, if not, $l$ must be *increased*. 
 
-To solve a set of linear equations of the form $S_i+v+Λ_1S_i+ v−1 + ... + Λ_{v−1}S_{i + 1} + Λ_vS_i=0$, a potential instance of $Λ$ is constructed step by step. Let $C$ denote such a potential candidate, it is sometimes also called the "connection polynomial" or the "error locator polynomial" for L errors, and defined as $C = c_LX_L + c_{L−1}X_{L−1} + ...+ c_2X_2 + c_1X + 1$. The goal of the Berlekemp - Massey algorithm is to now determine the minimal degree $L$ and to construct $C$ such, that $S_n+c_1S_{n−1} + ... + c_LS_{n−L}= 0, \forall L≤n≤N−1$, where $N$ is the total number of syndromes, and $n$ is the index variable used to loop through the syndromes from 0 to N−1.
+To solve a set of linear equations of the form $S_i+v+\Lambda_1S_i+ v-1 + ... + \Lambda_{v-1}S_{i + 1} + \Lambda_vS_i=0$, a potential instance of $\Lambda$ is constructed step by step. Let $C$ denote such a potential candidate, it is sometimes also called the "connection polynomial" or the "error locator polynomial" for L errors, and defined as $C = c_LX_L + c_{L-1}X_{L-1} + ...+ c_2X_2 + c_1X + 1$. The goal of the Berlekemp - Massey algorithm is to now determine the minimal degree $L$ and to construct $C$ such, that $S_n+c_1S_{n-1} + ... + c_LS_{n-L}= 0, \forall L\leq n \leq N-1$, where $N$ is the total number of syndromes, and $n$ is the index variable used to loop through the syndromes from 0 to N-1.
 
 With each iteration, the algorithm calculates the **discrepancy** $d$ between the candidate and the actual feedback polynomial: 
-$$ d = S_k+c_1S_{k−1}+ ... + c_LS_{k−L} $$
-If the discrepancy is zero, the algorithm assumes that $C$ is a valid candidate and continues. Else, if $d≠0$, the candidate $C$ must be adjusted such, that a recalculation of the discrepancy would lead to $d = 0$. This re-adjustments is done as follows: 
-$$ C= C− (d/b)X^mB $$
+$$ d = S_k+c_1S_{k-1}+ ... + c_LS_{k-L} $$
+If the discrepancy is zero, the algorithm assumes that $C$ is a valid candidate and continues. Else, if $d\ne0$, the candidate $C$ must be adjusted such, that a recalculation of the discrepancy would lead to $d = 0$. This re-adjustments is done as follows: 
+$$ C= C- (d/b)X^mB $$
 where,\
 $B$ is a copy of the *last candidate* $C$ since $L$ was updated,\
 $b$ a copy of the *last discrepancy* since $L$ was updated,\
 and the multiplication by X^m is but an index shift. \
-The new discrepancy can now easily be computed as $d = d−(d/b)b = d−d = 0$. This above algorithm can further be simplified for modulo 2 case. See Wiki.
+The new discrepancy can now easily be computed as $d = d-(d/b)b = d-d = 0$. This above algorithm can further be simplified for modulo 2 case. See Wiki.
 
 ### Geffe Generator
 The Geffe generator consists of three LFSRs: LFSR-1, LFSR-2 and LFSR-3 using primitive feedback polynomials. If we denote the outputs of these registers by $x_1$, $x_2$ and $x_3$, respectively, then the Boolean function that combines the three registers to provide the generator output is given by
@@ -448,16 +454,78 @@ $x_i =  X_i \gg t, X_{i+1} = (a*X_i + b) \% m \implies X_i = 2^t * x_i + y_i$, w
 The forthcoming attack is borrowed from this [paper](https://www.math.cmu.edu/~af1p/Texfiles/RECONTRUNC.pdf) on reconstructing truncated integer variables satisfying linear congruences. 
 
 Consider the matrix $L$ defined for some $k$ as -
-
-![](l1.png)
-
+<!-- $$\begin{bmatrix}
+    a & -1 & 0 & \dots & 0\\
+    a^2 & 0 & -1 & \dots & 0\\
+    \vdots & \vdots & \vdots & \ddots & \vdots\\
+    a^{k-1} & 0 & 0 & \dots & -1\\
+    M & 0 & 0 & \dots & 0\\
+    0 & M & 0 & \dots & 0\\
+    0 & 0 & M & \dots & 0\\
+    \vdots & \vdots & \vdots & \ddots & \vdots\\
+    0 & 0 & 0 & \dots & M\\
+\end{bmatrix} \implies L \begin{bmatrix}
+    X_1\\
+    X_2\\
+    X_3\\
+    \vdots\\
+    X_k\\
+\end{bmatrix} = \begin{bmatrix}
+    b + M \alpha_1\\
+    b(1+a) + M \alpha_2\\
+    \vdots\\
+    b(1+a+\dots+a^{k-2}) + M \alpha_{k-1}\\
+    M X_1\\
+    M X_2\\
+    M X_3\\
+    \vdots\\
+    M X_k\\
+\end{bmatrix} = \begin{bmatrix}
+   
+    0\\
+    0\\
+    \vdots\\
+    0\\
+\end{bmatrix} (\% M)$$
 since $X_i = [a^{i-1} * X_1 + b(1 + a + \dots + a^{i-2})] \% M = a^{i-1} * X_1 + b \frac{a^{i-1}-1}{a-1} + M \alpha_{i-1}$ for some $\alpha_{i-1} \in \Z$. Note that here $L$ is a $2k-1 \times k$ lattice, and we also observe that the bottom $k-1$ rows can all be written as linear combinations of the top $k$ rows, and therefore, the top $k$ rows form a basis for this lattice. Thus, we can rewrite it as:
-
-![](l2.png)
-
+$$L' = \begin{bmatrix}
+    a & -1 & \dots & 0\\
+    a^2 & 0 & \dots & 0\\
+    \vdots & \vdots & \ddots & \vdots\\
+    a^{k-1} & 0 & \dots & -1\\
+    M & 0 & \dots & 0\\
+    \end{bmatrix} \implies L' \begin{bmatrix}
+    X_1\\
+    X_2\\
+    X_3\\
+    \vdots\\
+    X_k\\
+\end{bmatrix} = \begin{bmatrix}
+    b\\
+    b\frac{a^2-1}{a-1}\\
+    \vdots\\
+    b\frac{a^{k-1}-1}{a-1}\\
+    0\\
+\end{bmatrix} (\% M)$$
 Also, since $X_i = 2^t * x_i + y_i$, the above equation can be re-written as:
-
-![](l3.png)
+$$L' \begin{bmatrix}
+    y_1\\
+    y_2\\
+    y_3\\
+    \vdots\\
+    y_k\\
+\end{bmatrix} = \left( b * \begin{bmatrix}
+    1\\
+    \frac{a^2-1}{a-1}\\
+    \vdots\\
+    \frac{a^{k-1}-1}{a-1}\\
+    0\\
+\end{bmatrix} + 2^t * L' * \begin{bmatrix}
+    x_1\\
+    x_2\\
+    \vdots\\
+    x_k\\
+\end{bmatrix} \right) (\% M) = \text{(let) } c (\% M)$$ -->
 
 Consider the LLL reduced basis for $L'$ denoted by $L'_r$, and consider $c_r$ such that each element of $c_r$ is $\le \frac{M}{2}$ in absolute value(ensuring $c_r (\% M) = c (\% M)$). Then, the mentioned paper shows that there exists **atmost one integral "small" solution** to the (non-modular) linear equation $L'_r \cdot y = c_r$, where $y$ denotes the vector consisting of entries $y_1$ upto $y_k$! Thus, we can solve for $y$ by computing the inverse of $L'_r$. Thus, the obtained first coordinate of $y$ would be our $y_1$; and we can then obtain $X_1$ as $X_1 = 2^t * x_1 + y_1$. The only catch here is whether this `small` solution indeed is the correct solution, that is whether our expected $y$ indeed satisfies the mentioned norm bounds. The paper proves that for random LCGs this holds true with a good probability, given sufficient number of output-bits and sufficient information to be guessed.
 
@@ -524,6 +592,8 @@ We demonstrated the backdoor by choosing our own random `multiplicative relation
 If only one output(`240` bits) can be obtained from the RNG, $~2^15$ possible states exist; thus, the attack doesn't work in such a case(atleast around `256` bits need to be seen, which essentially means two runs of the RNG).
 
 The values of $P$ and $Q$ which were used in the actual implementation had been publicised by NSA to be the ones which allowed "fast computations", nobody knows where these values actually came from! Since the values were chosen by themselves, it is unknown whether they actually had utilized this backdoor but the existence of a backdoor in a popular PRNG is very troublesome to the cryptographic community in itself.
+
+\pagebreak
 
 # Refrences
 ## References - Mersenne
@@ -615,20 +685,23 @@ def untamper(num):
 - This class is an abstarct implementation handeling `pythonic` as well as `Z3-type` input of seed and feedback/combination polynomial.
 ```python
 class LFSR:
-    """ Normal LFSR impl with pythonic inputs. Everything is in `GF(2)`
+    """ Normal LFSR impl with pythonic inputs. 
+    Everything is in `GF(2)`
     n-bit LFSR defined by given feedback polynomial
     seed = MSB to LSB list of bits
     feedback_polynomial = MSB to LSB list of bits
     """
 
     def __init__(self, seed, poly):
-        assert len(seed) == len(poly), "Error: Seed and taps poly  should be of same length"
+        assert len(seed) == len(poly), \
+            "Error: Seed and taps should be of same length"
         self._seed = seed.copy()        # Sn, Sn-1, ..., S0
         self._comb_poly = poly          # C0, C1, ..., Cn
     
     def next_bit(self):
         """ Generate next output bit """
-        tapped = [self._seed[i] for i,j in enumerate(self._comb_poly) if j == 1]
+        tapped = [self._seed[i] for i,j in \
+            enumerate(self._comb_poly) if j == 1]
         xored = reduce(lambda x,y: x^y, tapped)
         opt = self._seed.pop(0)
         self._seed.append(xored)
@@ -647,7 +720,8 @@ class LFSR:
 - This class is also an abstraction. Depending on our utility we can use the same instance to guess the seeds generated using same combination polynomial.
 ```python
 class Geffe:
-    """ Geffe Generator's with solver in z3 and brute force as well. We need to know the combination polynomial beforehand """
+    """ Geffe Generator's with solver in z3 and brute force as well. 
+    We need to know the combination polynomial beforehand """
 
     def __init__(self, l1, l2, l3, c1, c2, c3):
         self._l1, self._l2, self._l3 = l1, l2, l3
@@ -697,7 +771,8 @@ class Geffe:
                 possible_seeds2.append(''.join(seed2))
             if m2 < corr:
                 m2 = corr
-        assert len(possible_seeds2) >=1, "Error: No x3 found, less data supplied."
+        assert len(possible_seeds2) >=1, "Error: No x3 found,\
+             less data supplied."
 
         # > 75% match of opt with x2 i.e. lfsr1
         possible_seeds1 = []
@@ -710,7 +785,8 @@ class Geffe:
                 possible_seeds1.append(''.join(seed1))
             if m1 < corr:
                 m1 = corr
-        assert len(possible_seeds1) >=1, "Error: No x2 found, less data supplied"
+        assert len(possible_seeds1) >=1, "Error: No x2 found,\
+             less data supplied"
         
         candidates = [(x, y) for x in possible_seeds1 for y in possible_seeds2]
 
@@ -721,7 +797,8 @@ class Geffe:
 - Finding the seed of LFSR given some output bits. We need to guess the number of bits in the seeds though.
 ```python
 class UnLFSR_Z3:
-    """ Similar to berlekamp in the sense that it finds the seed and the comb poly using z3 solver. """
+    """ Similar to berlekamp in the sense that it finds the seed 
+    and the comb poly using z3 solver. """
 
     def __init__(self, opt, degree_guess):
         """ opt is list of 0s and 1s. 1st bit 1st """
@@ -741,7 +818,8 @@ class UnLFSR_Z3:
             taps = ''.join(str(model[i]) for i in self._poly)
             return sd,taps
         else:
-            print("ERROR: unsolvable... provide more output or bits guessed is wrong")
+            print("ERROR: unsolvable... provide more output\
+                 or bits guessed is wrong")
 ```
 ### Testing the implementation
 - This code implemtes certain test cases for testing the Z3 modeling
@@ -753,7 +831,8 @@ def str_to_lst_int(string):
     return list(map(int, string))
 
 def test_n_bit_k_steps(n: int, k: int):
-    """ Generate seed and combination polynomial and generate some eandom bits """
+    """ Generate seed and combination polynomial,
+     generate some eandom bits and test the model"""
     rndm_seed = bin(random.getrandbits(n))[2:]
     seed = rndm_seed + '0'*(n-len(rndm_seed))
     rndm_poly = bin(random.getrandbits(n))[2:]
@@ -778,7 +857,8 @@ def test_n_bit_k_steps(n: int, k: int):
     bm_opt = lfsr_new.get_lfsr(2*k)
 
     if bm_opt == gen_opt:
-        print(f"No mismatch for {n} bit seed. Matched {2*k} (random) output bits")
+        print(f"No mismatch for {n} bit seed. Matched {2*k} \
+            (random) output bits")
         print("Success!")
     else:
         for i, j in enumerate(zip(bm_opt[k:], gen_opt[k:])):
@@ -792,7 +872,8 @@ test_n_bit_k_steps(2048,4096)
 
 # Test Geffes generator
 def test_geffe_generator(num_opt_bits, size_taps):
-    """ Given n output bits and taps of all the 3 LFSRs, find the actual seeds of LFSRs """
+    """ Given n output bits and taps of all the 3 LFSRs,
+    find the actual seeds of LFSRs """
     # c1 = bin(random.getrandbits(size_taps))[2:]
     # c1 = c1 + '0'*(size_taps - len(c1))
     c1 = '11011' + '0'*(size_taps - 5)
@@ -816,14 +897,18 @@ def test_geffe_generator(num_opt_bits, size_taps):
     ll3 = bin(random.getrandbits(size_taps))[2:]
     ll3 = ll3 + '0'*(size_taps - len(ll3))
 
-    geffe_normal = Geffe(str_to_lst_int(ll1), str_to_lst_int(ll2), str_to_lst_int(ll3),  str_to_lst_int(c1), str_to_lst_int(c2), str_to_lst_int(c3))
+    geffe_normal = Geffe(str_to_lst_int(ll1), str_to_lst_int(ll2), \
+        str_to_lst_int(ll3), str_to_lst_int(c1),\
+            str_to_lst_int(c2), str_to_lst_int(c3))
 
     opt = geffe_normal.get_seqn(num_opt_bits)
-    geffe = Geffe(l1, l2, l3, list(map(int,c1)), list(map(int,c2)), list(map(int,c3)))
+    geffe = Geffe(l1, l2, l3, list(map(int,c1)),\
+         list(map(int,c2)), list(map(int,c3)))
     start_time = time.time()
     for l1_z3, l2_z3, l3_z3 in geffe.solve(opt):
         print("Time taken Geffe using Z3: " , time.time() - start_time)
-        print(ll1 == ''.join(map(str,l1_z3)), ll2 == ''.join(map(str,l2_z3)), ll3 == ''.join(map(str,l3_z3)))
+        print(ll1 == ''.join(map(str,l1_z3)), ll2 == ''.join(map(str,l2_z3)),\
+             ll3 == ''.join(map(str,l3_z3)))
         start_time = time.time()
 
     start_time = time.time()
@@ -875,7 +960,8 @@ def SqrRoots(a, n):
         (g, xa, xb) = xgcd(a, n)
         if(g != 1):
             raise ValueError(
-                "***** Error *****: {0} has no inverse (mod {1}) as their gcd is {2}, not 1.".format(a, n, g))
+                "***** Error *****: {0} has no inverse (mod {1}) as \
+                    their gcd is {2}, not 1.".format(a, n, g))
         return xa % n
 
     def TSRsqrtmod(a, grpord, p):
@@ -922,7 +1008,8 @@ class Dual_EC:
 class Breaker(Dual_EC):
     def solution_exists(self, x):
         '''
-            Checks if a solution exists for a given x-coordinate. Also outputs solutions in case they exist
+            Checks if a solution exists for a given x-coordinate. 
+            Also outputs solutions in case they exist.
             Returns (True, solutions) or (False, ())
         '''
         rhs = P256.evaluate(x)
@@ -955,7 +1042,7 @@ class Breaker(Dual_EC):
         
     def possible_points(self, output):
         '''
-            Given the output 240 bits, we want to obtain the possible points r*Q could be.
+        Given the output 240 bits, obtain the possible points r*Q could be.
         '''
         l = []
         for i in tqdm(range(2 ** 16)):
@@ -970,7 +1057,8 @@ class Breaker(Dual_EC):
         
     def break_dec(self):
         '''
-            Try to recover the current state of the Dual_EC_DRBG - can't recover older states!
+        Try to recover the current state of the Dual_EC_DRBG 
+        cannot recover older states!
         '''
 
         it = 240
@@ -1069,7 +1157,8 @@ class Breaker_lcg(lcg):
         b = (outputs[1]-a*outputs[0])%p
 
         assert all(j == (a*i + b)%p for i,j in zip(outputs,outputs[1:]))
-        print(f"Recovered internal constants from {len(outputs)} outputs : p = {p} a = {a} b = {b}")
+        print(f"Recovered internal constants from {len(outputs)}\
+             outputs : p = {p} a = {a} b = {b}")
         return p,a,b
 
 def all_smt(s, initial_terms):
@@ -1146,7 +1235,8 @@ class Breaker(truncated_lcg):
 
         s.add(ULT(seed0,n),ULT(a,n),ULT(b,n),UGE(seed0,0),UGE(a,0),UGE(b,0))
         for v in outputs:
-            seed = simplify(URem(ZeroExt(self.n_bitlen,a)*seed+ZeroExt(self.n_bitlen,b), ZeroExt(self.n_bitlen,n)))
+            seed = simplify(URem(ZeroExt(self.n_bitlen,a)*seed+\
+                ZeroExt(self.n_bitlen,b), ZeroExt(self.n_bitlen,n)))
             s.add(v == LShR(seed,self.truncation))
 
         start_time, last_time = time(), time()
@@ -1193,7 +1283,8 @@ class Breaker(truncated_lcg):
         u = (U * v)
         self.shorten(u)
 
-        A = DomainMatrix.from_Matrix(Matrix(k, k, lambda i, j: L[i, j])).convert_to(QQ)
+        A = DomainMatrix.from_Matrix(Matrix(k, k, lambda i,\
+             j: L[i, j])).convert_to(QQ)
         b = DomainMatrix.from_Matrix(Matrix(k, 1, lambda i, j: u[i, 0])).convert_to(QQ)
         M = (A.inv() * b).to_Matrix()
 
@@ -1202,7 +1293,8 @@ class Breaker(truncated_lcg):
         seed = BitVec('seed', self.n_bitlen)
         
         s = Solver()
-        s.add(ULT(seed,self.n),next_st == simplify(URem(self.a * ZeroExt(self.n_bitlen, seed) + self.b, self.n)))
+        s.add(ULT(seed,self.n),next_st == simplify(URem(self.a * 
+        ZeroExt(self.n_bitlen, seed) + self.b, self.n)))
         
         guess = []
 
@@ -1214,8 +1306,3 @@ class Breaker(truncated_lcg):
         return guess
 ```
 
-# Team members
-1. Himanshu Sheoran 170050105
-2. Lakshya Kumar 170050033
-3. Sahil Jain 180050089
-4. Yash Ajitbhai Parmar 170050004
