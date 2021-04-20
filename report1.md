@@ -1,4 +1,10 @@
 # Project -  Analysis, state and seed recovery of RNGs
+
+1. Himanshu Sheoran 170050105
+2. Lakshya Kumar 170050033
+3. Sahil Jain 180050089
+4. Yash Ajitbhai Parmar 170050004
+
 ## Abstract
 Study of (novel) methods for seed and state recovery using reduced number of outputs for general purpose random number generators like `MT19937`, `MT19937-64`, `LCGs & Truncated LCGs`, `LSFRs`, using **SMT/SAT solvers**.
 
@@ -349,32 +355,32 @@ LFSRs were used in stream ciphers in early years of internet. Later on, Berlekam
 The Berlekamp–Massey algorithm is an algorithm that will find the shortest linear feedback shift register (LFSR) for a given binary output sequence. \
 This algorithm starts with the assumption that the length of the LSFR is $l = 1$, and then *iteratively* tries to generate the known sequence and if it succeeds, everything is well, if not, $l$ must be *increased*. 
 
-To solve a set of linear equations of the form $S_i+v+Λ_1S_i+ v−1 + ... + Λ_{v−1}S_{i + 1} + Λ_vS_i=0$, a potential instance of $Λ$ is constructed step by step. Let $C$ denote such a potential candidate, it is sometimes also called the "connection polynomial" or the "error locator polynomial" for L errors, and defined as $C = c_LX_L + c_{L−1}X_{L−1} + ...+ c_2X_2 + c_1X + 1$. The goal of the Berlekemp - Massey algorithm is to now determine the minimal degree $L$ and to construct $C$ such, that $S_n+c_1S_{n−1} + ... + c_LS_{n−L}= 0, \forall L≤n≤N−1$, where $N$ is the total number of syndromes, and $n$ is the index variable used to loop through the syndromes from 0 to N−1.
+To solve a set of linear equations of the form $S_i+v+\Lambda_1S_i+ v-1 + ... + \Lambda_{v-1}S_{i + 1} + \Lambda_vS_i=0$, a potential instance of $\Lambda$ is constructed step by step. Let $C$ denote such a potential candidate, it is sometimes also called the "connection polynomial" or the "error locator polynomial" for L errors, and defined as $C = c_LX_L + c_{L-1}X_{L-1} + ...+ c_2X_2 + c_1X + 1$. The goal of the Berlekemp - Massey algorithm is to now determine the minimal degree $L$ and to construct $C$ such, that $S_n+c_1S_{n-1} + ... + c_LS_{n-L}= 0, \forall L\leq n \leq N-1$, where $N$ is the total number of syndromes, and $n$ is the index variable used to loop through the syndromes from 0 to N-1.
 
 With each iteration, the algorithm calculates the **discrepancy** $d$ between the candidate and the actual feedback polynomial: 
-$$ d = S_k+c_1S_{k−1}+ ... + c_LS_{k−L} $$
-If the discrepancy is zero, the algorithm assumes that $C$ is a valid candidate and continues. Else, if $d≠0$, the candidate $C$ must be adjusted such, that a recalculation of the discrepancy would lead to $d = 0$. This re-adjustments is done as follows: 
-$$ C= C− (d/b)X^mB $$
+$$ d = S_k+c_1S_{k-1}+ ... + c_LS_{k-L} $$
+If the discrepancy is zero, the algorithm assumes that $C$ is a valid candidate and continues. Else, if $d\ne0$, the candidate $C$ must be adjusted such, that a recalculation of the discrepancy would lead to $d = 0$. This re-adjustments is done as follows: 
+$$ C= C- (d/b)X^mB $$
 where,\
 $B$ is a copy of the *last candidate* $C$ since $L$ was updated,\
 $b$ a copy of the *last discrepancy* since $L$ was updated,\
 and the multiplication by X^m is but an index shift. \
-The new discrepancy can now easily be computed as $d = d−(d/b)b = d−d = 0$. This above algorithm can further be simplified for modulo 2 case. See Wiki.
+The new discrepancy can now easily be computed as $d = d-(d/b)b = d-d = 0$. This above algorithm can further be simplified for modulo 2 case. See Wiki.
 
 ### Geffe Generator
 The Geffe generator consists of three LFSRs: LFSR-1, LFSR-2 and LFSR-3 using primitive feedback polynomials. If we denote the outputs of these registers by $x_1$, $x_2$ and $x_3$, respectively, then the Boolean function that combines the three registers to provide the generator output is given by
 $$ F(x_1, x_2, x_3) = (x_1 \land x_2) \oplus (\lnot x_1 \land x_2) $$
-There are $2^3 = 8$ possible values for the outputs of the three registers, and the value of this combining function for each of them is shown in the table below:  
-| $x_1$  | $x_2$  | $x_3$  | $F(x_1, x_2, x_3)$  |
-|:---:|:---:|:---:|:---:|
-|  0 | 0  | 0  | 0  |
-|  0 | 0  | 1  | 1  |
-|  0 | 1  | 0  | 0  |
-|  0 | 1  | 1  | 1  |
-|  1 | 0  | 0  | 0  |
-|  1 | 0  | 1  | 0  |
-|  1 | 1  | 0  | 1  |
-|  1 | 1  | 1  | 1  |
+There are $2^3 = 8$ possible values for the outputs of the three registers, and the value of this combining function for each of them is shown in the table below: 
+| $x_1$ | $x_2$ | $x_3$ | $F(x_1, x_2, x_3)$ |
+| :---: | :---: | :---: | :----------------: |
+|   0   |   0   |   0   |         0          |
+|   0   |   0   |   1   |         1          |
+|   0   |   1   |   0   |         0          |
+|   0   |   1   |   1   |         1          |
+|   1   |   0   |   0   |         0          |
+|   1   |   0   |   1   |         0          |
+|   1   |   1   |   0   |         1          |
+|   1   |   1   |   1   |         1          |
 
 Consider the output of the third register, $x_3$. The table above makes it clear that of the 8 possible outputs of $x_3$, 6 of them are equal to the corresponding value of the generator output, $F(x_1, x_2, x_3)$, i.e. $x_3 = F( x_1, x_2,x_3 )$ in **75%** of all possible cases. This correlation can be exploited to have a brute force search on the key bits of LSFR-3, since on correct key we would observe an advantage of 1/4 over any other key.
 This will reduce the brute forcing of 3 LFSRs to only 2 LFSRs!!\
@@ -391,18 +397,18 @@ We abstracted the Geffe Generated in a manner that it would return a boolean fun
 ### Results
 We observed significantly faster runtimes using the Z3 boolean model as compared to brute force correlation attack.
 
-| Specifications | Time taken using brute-force| Time taken using Z3 solver |
-|:---| :---: | :---: |
-| 10-bit seed each, 128 bit output | 01.50s | 0.25s |
-| 12-bit seed each, 128 bit output | 06.25s | 0.26s |
-| 12-bit seed each, 256 bit output | 12.50s | 0.41s |
-| 12-bit seed each, 350 bit output | 16.62s | 0.54s |
-| 13-bit seed each, 256 bit output | 25.08s | 0.74s |
-| 14-bit seed each, 256 bit output | 52.30s | 1.12s |
-| 16-bit seed each, 256 bit output | 222.66s | 4.53s |
-| 16-bit seed each, 512 bit output | 449.29s | 5.99s |
-| 18-bit seed each, 256 bit output | 936.59s | 29.33s |
-<!-- | 24-bit seed each, 2048 bit output | - Timout - | 400.45s | -->
+| Specifications                   |   Time taken using brute-force    | Time taken using Z3 solver |
+| :------------------------------- | :-------------------------------: | :------------------------: |
+| 10-bit seed each, 128 bit output |              01.50s               |           0.25s            |
+| 12-bit seed each, 128 bit output |              06.25s               |           0.26s            |
+| 12-bit seed each, 256 bit output |              12.50s               |           0.41s            |
+| 12-bit seed each, 350 bit output |              16.62s               |           0.54s            |
+| 13-bit seed each, 256 bit output |              25.08s               |           0.74s            |
+| 14-bit seed each, 256 bit output |              52.30s               |           1.12s            |
+| 16-bit seed each, 256 bit output |              222.66s              |           4.53s            |
+| 16-bit seed each, 512 bit output |              449.29s              |           5.99s            |
+| 18-bit seed each, 256 bit output |              936.59s              |           29.33s           |
+| <!--                             | 24-bit seed each, 2048 bit output |         - Timout -         | 400.45s | --> |
 While the runtime of discovered correlation attack is observably *exponential* in the number of bits of LFSRs whereas, observed runtime of our approach is *subexponential/polynomial*, since boolean constraints are relatively sparse and SAT solvers are highly optimized in solving such boolean constraints.  
 
 ## Challenges / Difficulties
@@ -463,7 +469,7 @@ Consider the LLL reduced basis for $L'$ denoted by $L'_r$, and consider $c_r$ su
 
 ## Our Work
 We have implemented both the aforementioned attacks in python3. The attack on LCG allows us to recover the seed easily. However, the lattice-based attack on truncated LCG is somewhat different in the sense that the method only allows us to recover $X_1$, which is not the seed we seek.  
-<!-- TODO: Is this necessary? -->
+
 One solution is to modify our original algorithm to include $X_0$ in the unknown vector $y$; however since $X_0$ does not have a known $x_0$ part, this modification may actually yield results much worse, since $X_0$ is a possibly large vector, and hence the norm bounds may now be violated! We had tried this method earlier, but it couldn't correctly recover the seed in many cases, especially the cases in which $a$ was not co-prime with $M$!  
 Another possible solution is to realize that $X_0$ in most cases needn't be unique, since the only outputs we obtain start from $X_1$! Thus, there could be multiple possible $X_0$'s which could yield the same sequence. We rely on our algorithm to obtain $X_1$, and then a SAT solver is incorporated to find out all possible $X_0$ which could yield the expected $X_1$. This way, we do not have to rely on the existence of the modular inverse of $a$, and several possible existing seeds can be recovered easily.
 
@@ -524,6 +530,8 @@ We demonstrated the backdoor by choosing our own random `multiplicative relation
 If only one output(`240` bits) can be obtained from the RNG, $~2^15$ possible states exist; thus, the attack doesn't work in such a case(atleast around `256` bits need to be seen, which essentially means two runs of the RNG).
 
 The values of $P$ and $Q$ which were used in the actual implementation had been publicised by NSA to be the ones which allowed "fast computations", nobody knows where these values actually came from! Since the values were chosen by themselves, it is unknown whether they actually had utilized this backdoor but the existence of a backdoor in a popular PRNG is very troublesome to the cryptographic community in itself.
+
+\pagebreak
 
 # Refrences
 ## References - Mersenne
@@ -650,7 +658,8 @@ class LFSR:
 - This class is also an abstraction. Depending on our utility we can use the same instance to guess the seeds generated using same combination polynomial.
 ```python
 class Geffe:
-    """ Geffe Generator's with solver in z3 and brute force as well. We need to know the combination polynomial beforehand """
+    """ Geffe Generator's with solver in z3 and brute force as well. 
+    We need to know the combination polynomial beforehand """
 
     def __init__(self, l1, l2, l3, c1, c2, c3):
         self._l1, self._l2, self._l3 = l1, l2, l3
@@ -726,7 +735,8 @@ class Geffe:
 - Finding the seed of LFSR given some output bits. We need to guess the number of bits in the seeds though.
 ```python
 class UnLFSR_Z3:
-    """ Similar to berlekamp in the sense that it finds the seed and the comb poly using z3 solver. """
+    """ Similar to berlekamp in the sense that it finds the seed 
+    and the comb poly using z3 solver. """
 
     def __init__(self, opt, degree_guess):
         """ opt is list of 0s and 1s. 1st bit 1st """
@@ -759,7 +769,8 @@ def str_to_lst_int(string):
     return list(map(int, string))
 
 def test_n_bit_k_steps(n: int, k: int):
-    """ Generate seed and combination polynomial and generate some eandom bits """
+    """ Generate seed and combination polynomial,
+     generate some eandom bits and test the model"""
     rndm_seed = bin(random.getrandbits(n))[2:]
     seed = rndm_seed + '0'*(n-len(rndm_seed))
     rndm_poly = bin(random.getrandbits(n))[2:]
@@ -799,7 +810,8 @@ test_n_bit_k_steps(2048,4096)
 
 # Test Geffes generator
 def test_geffe_generator(num_opt_bits, size_taps):
-    """ Given n output bits and taps of all the 3 LFSRs, find the actual seeds of LFSRs """
+    """ Given n output bits and taps of all the 3 LFSRs,
+    find the actual seeds of LFSRs """
     # c1 = bin(random.getrandbits(size_taps))[2:]
     # c1 = c1 + '0'*(size_taps - len(c1))
     c1 = '11011' + '0'*(size_taps - 5)
@@ -1232,8 +1244,3 @@ class Breaker(truncated_lcg):
         return guess
 ```
 
-# Team members
-1. Himanshu Sheoran 170050105
-2. Lakshya Kumar 170050033
-3. Sahil Jain 180050089
-4. Yash Ajitbhai Parmar 170050004
