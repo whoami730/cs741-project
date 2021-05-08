@@ -1,4 +1,4 @@
-#           Analysis, State and Seed recovery of RNGs
+#  Project \- Analysis, State and Seed recovery of RNGs
 
 |                  |             |               |            |
 |       :--:       |      :--:   |       :--:    |   :--:     |
@@ -26,7 +26,7 @@ With our method, we were able to recover the `seed` of standard mersenne twister
 Application of SMT encoding on truncated LCGs yielded comparable and in some cases way better results than the existing lattice based recovery techniques.  
 SMT based attack on Geffe generator results was found to be significantly faster than the known correlation attacks.  
 
-Extending the discussion, we further study the case of notorious DUAL EC DRBG CSPRNG for presence of kleptographic backdoor to gibe NSA the ability to predict all outputs given 32bytes of keystream.
+Extending the discussion, we further study the case of notorious DUAL EC DRBG CSPRNG for presence of kleptographic backdoor to gibe NSA the ability to predict all outputs given 32 bytes of keystream.
 
 <!-- # Table of Contents
 1. [Mersenne Twister](#mersenne-twister)
@@ -347,8 +347,7 @@ LFSR are used for stream ciphers and are still used today in algorithms like A5/
 ## Algorithmic Details
 Linear Feedback Shift Register is a shift register whose input bit is a function of it's previous state. A simple way to write LFSR is:
 $$S_{n} = \sum_{j=1}^{j=n}a_j*S_{n-j}$$
-where\
-$n$ is total numebr of input bits\
+where $n$ is total numebr of input bits\
 $S_i$ is the input bits being used\
 $a_j$ is the value of the cofficient, which in our case is `0` or `1` as all the calculation is `modulo 2`  
 and $S_0, S_1, ..., S_n$ are the output bits and $a_0, a_1, ..., a_n$ is called feedback polynomial or combination polynomial.  
@@ -360,10 +359,8 @@ Here notice that the $a_i$'s remain the same. Hence given n-bit seed atmost $2^n
 LFSRs were used in stream ciphers in early years of internet. Later on, Berlekamp published a paper that talked about an algorithm to decode [BCH codes](https://en.wikipedia.org/wiki/BCH_code). Later on, James Massey recognized its application to LFSRs and simplified the algorithm.
 
 ### Berlekamp – Massey Algorithm
-The Berlekamp–Massey algorithm is an algorithm that will find the shortest linear feedback shift register (LFSR) for a given binary output sequence. \
-This algorithm starts with the assumption that the length of the LSFR is $l = 1$, and then *iteratively* tries to generate the known sequence and if it succeeds, everything is well, if not, $l$ must be *increased*. 
-
-To solve a set of linear equations of the form:  
+The Berlekamp–Massey algorithm is an algorithm that will find the shortest linear feedback shift register (LFSR) for a given binary output sequence. This algorithm starts with the assumption that the length of the LSFR is $l = 1$, and then *iteratively* tries to generate the known sequence and if it succeeds, everything is well, if not, $l$ must be *increased*.  
+To solve a set of linear equations of the form:
 $$S_i + v + \Lambda_1 S_i+ v-1 + ... + \Lambda_{v-1} S_{i + 1} + \Lambda_v S_i=0$$
 A potential instance of $\Lambda$ is constructed step by step. Let $C$ denote such a potential candidate, it is sometimes also called the "connection polynomial" or the "error locator polynomial" for L errors, and defined as 
 $$C = c_LX_L + c_{L-1}X_{L-1} + ...+ c_2X_2 + c_1X + 1.$$ 
@@ -375,11 +372,11 @@ and $n$ is the index variable used to loop through the syndromes from 0 to N-1.
 With each iteration, the algorithm calculates the **discrepancy** $d$ between the candidate and the actual feedback polynomial: 
 $$ d = S_k+c_1S_{k-1}+ ... + c_LS_{k-L} $$
 If the discrepancy is zero, the algorithm assumes that $C$ is a valid candidate and continues. Else, if $d\ne0$, the candidate $C$ must be adjusted such, that a recalculation of the discrepancy would lead to $d = 0$. This re-adjustments is done as follows: 
-$$ C= C- (d/b)X^mB $$  
+$$ C= C- (d/b)X^mB $$
 where, $B$ is a copy of the *last candidate* $C$ since $L$ was updated,\
 $b$ a copy of the *last discrepancy* since $L$ was updated,\
 and the multiplication by X^m is but an index shift. \
-The new discrepancy can now easily be computed as $d = d-(d/b)b = d-d = 0$. This above algorithm can further be simplified for modulo 2 case. See Wiki.
+The new discrepancy can now easily be computed as $d = d-(d/b)b = d-d = 0$. This above algorithm can further be simplified for modulo 2 case. 
 
 ### Geffe Generator
 The Geffe generator consists of **three** LFSRs: LFSR-1, LFSR-2 and LFSR-3 using primitive feedback polynomials. If we denote the outputs of these registers by $x_1$, $x_2$ and $x_3$, respectively, then the Boolean function that combines the three registers to provide the generator output is given by
@@ -391,8 +388,7 @@ There are $2^3 = 8$ possible values for the outputs of the three registers, and 
 | $x_1$ | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 
 | $x_2$ | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 
 | $x_3$ | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 
-| $F(x_1, x_2, x_3)$ | 0 | 1 | 0 | 1 | 0 | 0 | 1 | 1 | 
-
+| $F(x_1, x_2, x_3)$ | 0 | 1 | 0 | 1 | 0 | 0 | 1 | 1 |  
 Consider the output of the third register, $x_3$. The table above makes it clear that of the 8 possible outputs of $x_3$, 6 of them are equal to the corresponding value of the generator output, in **75%** of all possible cases
 $$F(x_1, x_2, x_3),\ i.e.\ x_3 = F( x_1, x_2,x_3 ).$$ 
 This correlation can be exploited to have a brute force search on the key bits of LSFR-3, since on correct key we would observe an advantage of 1/4 over any other key.
@@ -455,15 +451,9 @@ $$ \begin{aligned}
 \end{aligned}$$ 
 Note that $0 \le X_i, s, a, b < m$.
 
-For a truncated LCG, which outputs certain most significant bits of the internal state, generated number $X$ can be written as 
-$$X = (s \gg trunc)$$
-where  
-$\gg$ denotes logical right-shift  
-$trunc$ is the number of lower bits to be truncated.  
+For a truncated LCG, which outputs certain most significant bits of the internal state, generated number $X$ can be written as $X = (s \gg trunc)$ where $\gg$ denotes logical right-shift and $trunc$ is the number of lower bits to be truncated.  
 
-## Background 
-
-### LCG 
+## Background - LCG
 It has been shown that given sufficient number of outputs, the parameters of a secret LCG can be recovered as follows.
 
 Assume that $b = 0$. Then we have  
@@ -644,23 +634,18 @@ Dual EC(Elliptic Curve) DRBG(Deterministic Random Bit Generator) was a pseudo-ra
 
 A particular curve $C$ and two points on the curve $P$ and $Q$ are chosen apriori and remain fixed throughout.
 
-The RNG is initially seeded with a random seed $s_0$. Whenever the RNG is asked for an output, assuming that the current seed(state) is $s_i$:
- - Compute 
+The RNG is initially seeded with a random seed $s_0$. Whenever the RNG is asked for an output, assuming that the current seed(state) is $s_i$:  
+- Compute 
 $$\begin{aligned}
     r_i \leftarrow (s_i * P) |_{x} \\
-    &&where\ M |_{x}\ denotes\ the\ x-coordinate\ of\ the\ point\ M
 \end{aligned}$$
- - Seed is updated as
+where $M |_{x}$ denotes the x-coordinate of the point $M$  
+- Seed is updated as
 $$\begin{aligned}
     s_{i+1} &\leftarrow (r_i * P) |_{x}\ and\\
     t_i &\leftarrow (r_i * Q) |_{x}
 \end{aligned}$$
- - Output is
-$$\begin{aligned}
-    LSB_{bitlen - 16}(t_i) \\
-    &&where\ LSB_k\ denotes\ the Least\ Significant\ k\ bits
-\end{aligned}$$
-
+- Output is $LSB_{bitlen - 16}(t_i)$ where $LSB_k$ denotes the Least Significant k bits
 We work with the case where $C$ is the NIST $P-256$ curve, in which case $bitlen = 256$ and therefore, in a single round, $240$ bits are obtained.
 
 ### Backdoor
@@ -675,10 +660,10 @@ This not only compromises the security of the RNG, but also allows the attacker 
 
 It was [shown](https://eprint.iacr.org/2006/190.pdf) that the generated `240` bits are not indistinguishable from truly random bits but actually admit non-negligible bias; thus demonstrating that the generator is insecure! Even though [some papers](https://eprint.iacr.org/2007/048.pdf) tried to show that DEC-DRBG was based on `cryptographically hard` problems; the possibility of a [kleptographic backdoor](https://rump2007.cr.yp.to/15-shumow.pdf) was later demonstrated. With this backdoor, one could essentially break down TLS just by monitoring one encryption connection.
 
-![](report_extras/decdrbg_better.png)
-
 ## Our Work
 In our Proof-of-Concept, we demonstrate that choosing $P$ and $Q$ of our own accord(that is, if we by chance know $e$ or $d$) allows us to recover the internal state of the RNG in approximately `32 bytes(256 bits)` of the output. This confirms the possibility of there being a backdoor in the RNG, and hence, allowing the attacker to compromise encryptions which relied on Dual-EC-DRBG as the random number generator.
+
+![](report_extras/decdrbg_better.png)
 
 ## Challenges/Difficulties
 How to perform mathematical operations on elliptic curves efficiently in python was one of the small challenges we encountered.  
@@ -692,7 +677,7 @@ If only one output(`240` bits) can be obtained from the RNG, $~2^{15}$ possible 
 
 The values of $P$ and $Q$ which were used in the actual implementation had been publicised by NSA to be the ones which allowed "fast computations", nobody knows where these values actually came from! Since the values were chosen by themselves, it is unknown whether they actually had utilized this backdoor but the existence of a backdoor in a popular PRNG is very troublesome to the cryptographic community in itself.
 
-
+\pagebreak
 
 # References
 ## References - Mersenne
