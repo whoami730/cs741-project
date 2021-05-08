@@ -28,8 +28,6 @@ SMT based attack on Geffe generator results was found to be significantly faster
 
 Extending the discussion, we further study the case of notorious DUAL EC DRBG CSPRNG for presence of kleptographic backdoor to gibe NSA the ability to predict all outputs given 32bytes of keystream.
 
-\pagebreak
-
 # Table of Contents
 1. [Mersenne Twister](#mersenne-twister)
 2. [LFSR](#lfsr)
@@ -38,6 +36,7 @@ Extending the discussion, we further study the case of notorious DUAL EC DRBG CS
 5. [References](#references)
 6. [Appendix](#appendix)   
 
+\pagebreak
 
 # Mersenne Twister
 Mersenne Twister (MT) is by far the most widely used general-purpose PRNG, which derives its name from the fact that its period is the Mersenne prime $2^{19937} -1$
@@ -562,7 +561,9 @@ Lattice-based attack relies on knowing the parameters of the truncated LCG. Had 
 All attacks rely on knowing the truncation as well as the bit-length of the modulus, none of the attacks are so general as to be able to figure these out on the fly!  
 Another major limitation is that since SAT solvers work in exponential or subexponential time, they're much slower compared to the lattice attack which works in polynomial time.
 
-- [References](#references---lcg)
+- [References](#references---lcg)  
+
+\pagebreak
 
 # Dual EC DRBG - Kleptographic Backdoor
 
