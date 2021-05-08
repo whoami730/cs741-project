@@ -2,21 +2,18 @@
 Linear Feeback shift registers are one of the easiest way to generate seemingly random bits from known bits. The word linear suggests that the algorithm is linear in nature, as in, the next output bit depends linearly on previous bit(s).
 
 ## Algorithmic Details
-A simple way to write LFSR is:
-$$S_{n} = \sum_{j=1}^{j=n}a_j*S_{n-j}$$
-where\
-$n$ is total numebr of input bits\
-$S_i$ is the input bits being used\
-$a_j$ is the value of the cofficient, which in our case is 0 or 1 as all the calculation is modulo 2
-
-This type of approach does generate seeming random bits very fast, but due to its **linear** nature, its cryptanalysis becomes realtively easy.
 
 LFSR were used for stream ciphers and are still used today in algorithms like A5/1, A5/2 for providing over-the-air communication in GSM phones. They are also used for pattern generation for exhaustive testing.
 
 ### LFSR algorithm:
 Linear Feedback Shift Register is a shift register whose input bit is a function of it's previous state.\
-Let's say we want to generate random bits using n-bit LFSR with seed $ S = S_1, S_2, ..., S_n$. Some fixed values lets say $a_1, a_2,... , a_n$ are used to compute the next input bit (these $a_i$'s are also called feedback polynomial or combination coefficients). Next input bit is given by the formula: 
+Let's say we want to generate random bits using n-bit LFSR with seed $S = S_1, S_2, ..., S_n$. Some fixed values lets say $a_1, a_2,... , a_n$ are used to compute the next input bit (these $a_i$'s are also called feedback polynomial or combination coefficients). Next input bit is given by the formula: 
 $$S_{n} = \sum_{j=1}^{j=n}a_j*S_{n-j}$$
+where\
+$n$ is total numebr of input bits\
+$S_i$ is the input bits being used\
+$a_j$ is the value of the cofficient, which in our case is 0 or 1 as all the calculation is modulo 2 
+
 After computing the next bit ($S_N$), the rightmost bit of the input is considered as *output bit* and the newly computed bit is attached to the left and the process is repated **k** number of times (called steps or cycles). This gives the *$k$* bits of output which is than used in cryptographic systems or for some other purpose.
 <!-- ![](16bit-lfsr.png) -->
 
@@ -31,32 +28,29 @@ LFSRs were used in stream ciphers in early years of internet. Later on, Berlekam
 The Berlekamp–Massey algorithm is an algorithm that will find the shortest linear feedback shift register (LFSR) for a given binary output sequence. \
 This algorithm starts with the assumption that the length of the LSFR is $l = 1$, and then *iteratively* tries to generate the known sequence and if it succeeds, everything is well, if not, $l$ must be *increased*. 
 
-To solve a set of linear equations of the form $S_i+ν+Λ_1S_i+ ν−1 + ... + Λ_{ν−1}S_{i + 1} + Λ_νS_i=0$, a potential instance of $Λ$ is constructed step by step. Let $C$ denote such a potential candidate, it is sometimes also called the "connection polynomial" or the "error locator polynomial" for L errors, and defined as $C = c_LX_L + c_{L−1}X_{L−1} + ...+ c_2X_2 + c_1X + 1$. The goal of the Berlekemp - Massey algorithm is to now determine the minimal degree $L$ and to construct $C$ such, that $S_n+c_1S_{n−1} + ... + c_LS_{n−L}= 0, \forall L≤n≤N−1$, where $N$ is the total number of syndromes, and $n$ is the index variable used to loop through the syndromes from 0 to N−1.
+To solve a set of linear equations of the form $S_i+v+\Lambda_1S_i+ v-1 + ... + \Lambda_{v-1}S_{i + 1} + \Lambda_vS_i=0$, a potential instance of $\Lambda$ is constructed step by step. Let $C$ denote such a potential candidate, it is sometimes also called the "connection polynomial" or the "error locator polynomial" for L errors, and defined as $C = c_LX_L + c_{L-1}X_{L-1} + ...+ c_2X_2 + c_1X + 1$. The goal of the Berlekemp - Massey algorithm is to now determine the minimal degree $L$ and to construct $C$ such, that $S_n+c_1S_{n-1} + ... + c_LS_{n-L}= 0, \forall L\leq n \leq N-1$, where $N$ is the total number of syndromes, and $n$ is the index variable used to loop through the syndromes from $0\ to\ N-1$.
 
 With each iteration, the algorithm calculates the **discrepancy** $d$ between the candidate and the actual feedback polynomial: 
-$$ d = S_k+c_1S_{k−1}+ ... + c_LS_{k−L} $$
-If the discrepancy is zero, the algorithm assumes that $C$ is a valid candidate and continues. Else, if $d≠0$, the candidate $C$ must be adjusted such, that a recalculation of the discrepancy would lead to $d = 0$. This re-adjustments is done as follows: 
-$$ C= C− (d/b)X^mB $$
+$$ d = S_k+c_1S_{k-1}+ ... + c_LS_{k-L} $$
+If the discrepancy is zero, the algorithm assumes that $C$ is a valid candidate and continues. Else, if $d\neq0$, the candidate $C$ must be adjusted such, that a recalculation of the discrepancy would lead to $d = 0$. This re-adjustments is done as follows: 
+$$ C= C - (d/b)X^mB $$
 where,\
 $B$ is a copy of the *last candidate* $C$ since $L$ was updated,\
 $b$ a copy of the *last discrepancy* since $L$ was updated,\
 and the multiplication by X^m is but an index shift. \
-The new discrepancy can now easily be computed as $d = d−(d/b)b = d−d = 0$. This above algorithm can further be simplified for modulo 2 case. See Wiki.
+The new discrepancy can now easily be computed as $d = d-(d/b)b = d-d = 0$. This above algorithm can further be simplified for modulo 2 case. See Wiki.
 
 ### Geffe Generator
 The Geffe generator consists of three LFSRs: LFSR-1, LFSR-2 and LFSR-3 using primitive feedback polynomials. If we denote the outputs of these registers by $x_1$, $x_2$ and $x_3$, respectively, then the Boolean function that combines the three registers to provide the generator output is given by
 $$ F(x_1, x_2, x_3) = (x_1 \land x_2) \oplus (\lnot x_1 \land x_2) $$
 There are $2^3 = 8$ possible values for the outputs of the three registers, and the value of this combining function for each of them is shown in the table below: 
-| $x_1$  | $x_2$  | $x_3$  | $F(x_1, x_2, x_3)$  |
-|:---:|:---:|:---:|:---:|
-|  0 | 0  | 0  | 0  |
-|  0 | 0  | 1  | 1  |
-|  0 | 1  | 0  | 0  |
-|  0 | 1  | 1  | 1  |
-|  1 | 0  | 0  | 0  |
-|  1 | 0  | 1  | 0  |
-|  1 | 1  | 0  | 1  |
-|  1 | 1  | 1  | 1  |
+|  |  |  |  |  |  |  |  |  | 
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| $x_1$ | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 
+| $x_2$ | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 
+| $x_3$ | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 
+| $F(x_1, x_2, x_3)$ | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 
+|  |  |  |  |  |  |  |  |  | 
 
 Consider the output of the third register, $x_3$. The table above makes it clear that of the 8 possible outputs of $x_3$, 6 of them are equal to the corresponding value of the generator output, $F(x_1, x_2, x_3)$, i.e. $x_3 = F( x_1, x_2,x_3 )$ in **75%** of all possible cases. This correlation can be exploited to have a brute force search on the key bits of LSFR-3, since on correct key we would observe an advantage of 1/4 over any other key.
 This will reduce the brute forcing of 3 LFSRs to only 2 LFSRs!!\
