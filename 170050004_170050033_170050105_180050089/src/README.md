@@ -13,27 +13,22 @@ Study of novel methods for seed and state recovery with reduced number of output
 <!-- ### Problem Statement -->
 Given a PRNG algorithm $A$, which is initialised using an initial value aka `seed` and $x_1, x_2, ..., x_k$ be the generated outputs from the random number generator, we wish to determine the starting `seed` or the state $S$ required to predict the future outputs of the generator.  
 
-Our work involves modelling the seed and state recovery problem of a PRNG into an SAT/SMT problem. 
+Our work involves modelling the seed and state recovery problem of a PRNG by encoding it into a [Satisfiability Modulo Theories](https://en.wikipedia.org/wiki/Satisfiability_modulo_theories) (SMT) decision problem, which is an extension of SAT with theories in first order logic.   
+We used the SMT solver [Z3Prover](https://github.com/Z3Prover/z3), as a sequential program written in theory of BitVectors for solving out SMT model of the PRNGs . After (painfully) modelling the program, we begin a SAT solver search (all-SAT to give all satisfying models for possible seed values) which leads us to a given sequence of outputs (the generated random numbers).  
+
+The core idea behind using z3 is that it mixes the program data and the program quite well, eases the modelling a lot.  
+Since theory of Bitvectors translates very well to algorithms designed and written in low level languages like C, and even assembly, most of them can be analysed very efficiently.  
+All we need to care about *the correct SMTlib implementations* to use as the general notion of various operators like bitshifts, comparisons are translated differently based on different scenarios by a compiler.  
+
 
 
 <!-- Our solution and what we did -->
 We modelled some RNGs into a SAT/SMT problem and solved it using Z3 Solver. We were able to recover the `seed` of standard mersenne twister (MT19937), which is the most used PRNG across all software systems, using only **3** outputs using SMT solvers in under 5 minutes, whereas all previous work is on state recovery using *624 consecutive outputs*.
 
-After getting all the underlying algorithms and functionalities right, we modelled the seed recovery algorithm as a [Satisfiability Modulo Theories](https://en.wikipedia.org/wiki/Satisfiability_modulo_theories) (SMT) decision problem, which is an extension of SAT with theories in first order logic.   
-We used the SMT solver [Z3Prover](https://github.com/Z3Prover/z3), as a sequential program written in theory of BitVectors for solving out SMT model of MT19937-64 . After (painfully) modelling the program, we begin a SAT solver search (all-SAT to give all satisfying models for possible seed values) which leads us to a given sequence of outputs (the generated random numbers).  
 
-The core idea behind using z3 is that it mixes the program data and the program quite well, eases the modelling a lot. All we need to care about *the correct SMTlib implementations* to use as the general notion of various operators like bitshifts, comparisons are translated differently based on different scenarios by a compiler.  
-e.g. the `tamper` state when written for a `BitVec(32) y` is almost exactly same as we would have written for a python-int
+We also employed SMT solvers to recover the state of other well known PRNGs like LCG, LSFRs and combiner generators like Geffe generator using a set of LSFRs.  
 
-
-
-We also employed SMT solvers to recover the state of other well known PRNGs like LCG, LSFRs and combiner generators like Geffe generator using a set of LSFRs.
-<!-- Summary -->
-We aim to understand the predictability of PRNGs especially by modelling them as SAT/SMT problem and further analyse the design of some cryptographically secure PRNGs. Our aim is to try and attack the RNGs and put some light on the fact that SAT theory is very powerfull tool which can break many famous RNGs and hence the cryptosystems that use those RNGs. 
-We also did the case study of the notorious DUAL_EC_DRBG CSPRNG for presence of a kleptographic backdoor to give NSA ability to predict all outputs. This study is an example of the fact that even CSPRNGs are not 100% secure. Especially when the governing body have kept some backdoor in the algorithm.  
-
-
-Through our project, we also want to encourage the use of SAT solvers for validating and checking the security and durability of any RNG or cryptographic protocal/system.
+Extending the discussion, we further study the case of notorious DUAL EC DRBG CSPRNG for presence of kleptographic backdoor to gibe NSA the ability to predict all outputs given 32bytes of keystream.
 
 # Table of Contents
 1. [Mersenne Twister](#mersenne-twister)
