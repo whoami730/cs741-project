@@ -615,7 +615,7 @@ Another challenge is that one cannot demonstrate the backdoor on the original va
 We demonstrated the backdoor by choosing our own random `multiplicative relation` between the "random points" $P$ and $Q$.
 
 ## Critique/Comparison
-If only one output(`240` bits) can be obtained from the RNG, $~2^15$ possible states exist; thus, the attack doesn't work in such a case(atleast around `256` bits need to be seen, which essentially means two runs of the RNG).
+If only one output(`240` bits) can be obtained from the RNG, $~2^{15}$ possible states exist; thus, the attack doesn't work in such a case(atleast around `256` bits need to be seen, which essentially means two runs of the RNG).
 
 The values of $P$ and $Q$ which were used in the actual implementation had been publicised by NSA to be the ones which allowed "fast computations", nobody knows where these values actually came from! Since the values were chosen by themselves, it is unknown whether they actually had utilized this backdoor but the existence of a backdoor in a popular PRNG is very troublesome to the cryptographic community in itself.
 
