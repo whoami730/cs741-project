@@ -636,7 +636,6 @@ class LFSR:
     seed = MSB to LSB list of bits
     feedback_polynomial = MSB to LSB list of bits
     """
-
     def __init__(self, seed, poly):
         assert len(seed) == len(poly), \
             "Error: Seed and taps should be of same length"
@@ -667,12 +666,12 @@ class LFSR:
 class Geffe:
     """ Geffe Generator's with solver in z3 and brute force as well. 
     We need to know the combination polynomial beforehand """
-
     def __init__(self, l1, l2, l3, c1, c2, c3):
         self._l1, self._l2, self._l3 = l1, l2, l3
         self._c1, self._c2, self._c3 = c1, c2, c3
-        self._lfsrs = [LFSR(self._l1,c1), LFSR(self._l2, c2), LFSR(self._l3, c3)]
-    
+        self._lfsrs = [
+                LFSR(self._l1,c1), LFSR(self._l2, c2), LFSR(self._l3, c3)
+            ]
     def next_bit(self):
         bits = [lfsr.next_bit() for lfsr in self._lfsrs]
         return (bits[0] & bits[1]) | ((~bits[0]) & bits[2])
@@ -704,7 +703,6 @@ class Geffe:
         lfsr0 = self._lfsrs[0]
         lfsr1 = self._lfsrs[1]
         lfsr2 = self._lfsrs[2]
-
         # >75% match of opt with x3 i.e. lfsr2
         possible_seeds2 = []
         m2 = 0
@@ -719,7 +717,6 @@ class Geffe:
                 m2 = corr
         assert len(possible_seeds2) >=1, "Error: No x3 found,\
              less data supplied."
-
         # > 75% match of opt with x2 i.e. lfsr1
         possible_seeds1 = []
         m1 = 0
@@ -734,9 +731,8 @@ class Geffe:
                 m1 = corr
         assert len(possible_seeds1) >=1, "Error: No x2 found,\
              less data supplied"
-        
-        candidates = [(x, y) for x in possible_seeds1 for y in possible_seeds2]
-
+        candidates = [(x, y) for x in possible_seeds1 for y in \ 
+        possible_seeds2]
         return (possible_seeds1[0], possible_seeds2[0])
 ```
 
@@ -746,7 +742,6 @@ class Geffe:
 class UnLFSR_Z3:
     """ Similar to berlekamp in the sense that it finds the seed 
     and the comb poly using z3 solver. """
-
     def __init__(self, opt, degree_guess):
         """ opt is list of 0s and 1s. 1st bit 1st """
         self._opt = opt.copy()
@@ -786,17 +781,14 @@ def test_n_bit_k_steps(n: int, k: int):
     feedback_poly = rndm_poly + '0'*(n - len(rndm_poly))
     lfsr = LFSR(list(map(int,seed)), list(map(int,feedback_poly)))
     gen_opt = lfsr.get_lfsr(2*k)
-
     # Test bm algo
     start_time = time.time()
     bm = Berlekamp_Massey(gen_opt[:len(gen_opt)//2])
     print("Time taken to recover LFSR seed: ", time.time() - start_time)
     sd = bm.get_seed()
     taps = bm.get_taps()
-    
     lfsr_new = LFSR(sd, taps)
     bm_opt = lfsr_new.get_lfsr(2*k)
-
     if bm_opt == gen_opt:
         print(f"No mismatch for {n} bit seed. Matched {2*k} \
             (random) output bits")
@@ -807,7 +799,6 @@ def test_n_bit_k_steps(n: int, k: int):
                 print(f"For {2*k} bits, 1st mismatch at index: {i}")
                 print("Partial Success. Need more output bits")
                 break
-    return
 
 test_n_bit_k_steps(1024,4096)
 
@@ -824,12 +815,10 @@ def test_geffe_generator(num_opt_bits, size_taps):
     # c3 = bin(random.getrandbits(size_taps))[2:]
     # c3 = c3 + '0'*(size_taps - len(c3))
     c3 = '1110000111' + '0'*(size_taps - 10)
-
     # Z3 Ls
     l1 = [BitVec(f'l1_{i}',1) for i in range(len(c1))]
     l2 = [BitVec(f'l2_{i}',1) for i in range(len(c2))]
     l3 = [BitVec(f'l3_{i}',1) for i in range(len(c3))]
-
     # Normal l1, l2 l3
     ll1 = bin(random.getrandbits(size_taps))[2:]
     ll1 = ll1 + '0'*(size_taps - len(ll1))
@@ -851,10 +840,10 @@ def test_geffe_generator(num_opt_bits, size_taps):
         print(ll1 == ''.join(map(str,l1_z3)), ll2 == ''.join(map(str,l2_z3)),\
              ll3 == ''.join(map(str,l3_z3)))
         start_time = time.time()
-
     start_time = time.time()
     l2_normal, l3_normal = geffe_normal.solve_bruteforce(opt)
-    print("Time taken to break Geffe using bruteforce: ", time.time() - start_time)
+    print("Time taken to break Geffe using bruteforce: ", \
+    time.time() - start_time)
     print((ll2 == l2_normal) & (ll3 == l3_normal))
 
 test_geffe_generator(2048, 24)
@@ -868,7 +857,6 @@ from gmpy2 import *
 import random, os
 from time import time
 
-
 def xgcd(a, b):
     a1,b1,a2,b2 = 1,0,0,1
     aneg,bneg = 1,1
@@ -880,41 +868,35 @@ def xgcd(a, b):
         bneg = -1
     while True:
         quot = -(a // b)
-        a = a % b
-        a1 = a1 + quot*a2
-        b1 = b1 + quot*b2
-        if(a == 0):
+        a,a1,b1 = a % b,a1 + quot*a2,b1 + quot*b2
+        if a == 0 :
             return (b, a2*aneg, b2*bneg)
         quot = -(b // a)
-        b = b % a
-        a2 = a2 + quot*a1
-        b2 = b2 + quot*b1
-        if(b == 0):
+        b,a2,b2 = b%a,a2 + quot*a1,b2 + quot*b1
+        if b == 0:
             return (a, a1*aneg, b1*bneg)
 
 def SqrRoots(a, n):
     def inverse_mod(a, n):
         (g, xa, xb) = xgcd(a, n)
-        if(g != 1):
-            raise ValueError(
-                "***** Error *****: {0} has no inverse (mod {1}) as \
-                    their gcd is {2}, not 1.".format(a, n, g))
+        if g != 1:
+            raise ValueError
         return xa % n
 
     def TSRsqrtmod(a, grpord, p):
         ordpow2 = 0
         non2 = grpord
-        while(not ((non2 & 0x01) == 1)):
+        while (non2 & 0x01) != 1:
             ordpow2 += 1
             non2 //= 2
         for g in range(2, grpord-1):
-            if (pow(g, grpord//2, p) != 1):
+            if pow(g, grpord//2, p) != 1:
                 break
         g = pow(g, non2, p)
         gpow = 0
         atweak = a
         for pow2 in range(0, ordpow2+1):
-            if(pow(atweak, non2*2**(ordpow2-pow2), p) != 1):
+            if pow(atweak, non2*2**(ordpow2-pow2), p) != 1:
                 gpow += 2**(pow2-1)
                 atweak = (atweak * pow(g, 2**(pow2-1), p)) % p
         d = inverse_mod(2, non2)
@@ -931,23 +913,22 @@ class Dual_EC:
         self.state = seed
         self.P = P
         self.Q = Q
-        # P and Q are not randomly chosen, but they're some numbers given to us!
-
+        # P and Q are not randomly chosen 
+        # but they're some numbers given to us!
     def next(self):
         r = (self.state*self.P).x
         self.state = (r*self.P).x
         t = (r * self.Q).x
         self.t = t
-
         return (t & ((1<<240)-1)) # get least signif 240 bits        
 
 
 class Breaker(Dual_EC):
     def solution_exists(self, x):
         '''
-            Checks if a solution exists for a given x-coordinate. 
-            Also outputs solutions in case they exist.
-            Returns (True, solutions) or (False, ())
+        Checks if a solution exists for a given x-coordinate. 
+        Also outputs solutions in case they exist.
+        Returns (True, solutions) or (False, ())
         '''
         rhs = P256.evaluate(x)
         l = legendre(rhs, P256.p)
@@ -960,9 +941,7 @@ class Breaker(Dual_EC):
             return (True, p)
 
     def get_random_point(self):
-        '''
-            Obtain a random point on the curve, given a generator
-        '''
+        '''Obtain a random point on the curve, given a generator'''
         x = random.randint(1, P256.q - 1)
         # Obtain point using generator
         return (x*P256.G)
@@ -975,7 +954,6 @@ class Breaker(Dual_EC):
         # we ensure that P and Q are related...
         #  that allows us to exploit this possible backdoor
         # Q = e*P
-        
         super().__init__(seed, P, Q)
         
     def possible_points(self, output):
@@ -989,7 +967,7 @@ class Breaker(Dual_EC):
             if a:
                 for j in b:
                     p = Point(poss_x, j, curve=P256)
-                    assert P256.is_point_on_curve((p.x,p.y)), "Point not on curve?"
+                    assert P256.is_point_on_curve((p.x,p.y))
                     l.append(p)
         return l
         
@@ -1003,34 +981,24 @@ class Breaker(Dual_EC):
         l = self.possible_points(oup)
         # find all possible next states
         next_s = list(set([(p * self.d).x for p in l]))
-
         next_pts = [Dual_EC(i,self.P,self.Q).next() for i in next_s]
         # need first 240 bits to generate an initial list of possible states
-
-        # the paper claims that no more than 256 bits are needed to break the RNG
         oup1 = self.next()
         p = 31
-
-        print(f"Initial count of possible states : {len(next_s)}".format())
-
+        print(f"Initial count of possible states : {len(next_s)}")
         inds = list(range(len(next_s)))
-        
-        while (p > 0) :
-
-            if (len(inds) <= 1):
+        while p > 0 :
+            if len(inds) <= 1:
                 break
-
             inds = list(filter(lambda x: ((oup1 & (1<<p)) == \
                  (next_pts[x] & (1<<p))),inds))
-            
             it += 1
             p -= 1
-
         assert len(inds) == 1, [next_s[x] for x in inds]
-        print(f"Old state - {next_s[inds[0]]}".format())
-        print(f"New state - {((next_s[inds[0]] * self.P).x * self.P).x}".format())
+        print(f"Old state - {next_s[inds[0]]}")
+        print(f"New state - {((next_s[inds[0]] * self.P).x * self.P).x}")
         assert ((next_s[inds[0]] * self.P).x * self.P).x == self.state
-        print(f"Took {it} bits to recover the seed".format())
+        print(f"Took {it} bits to recover the seed")
         return next_s[inds[0]], it
                 
 if __name__ == '__main__':
@@ -1051,12 +1019,6 @@ from functools import reduce
 from sympy.polys.matrices import DomainMatrix
 import sys, os, gmpy2
 sys.setrecursionlimit(100000)
-
-set_param('parallel.enable', True)
-set_param('parallel.threads.max', 32)
-set_param('sat.local_search_threads', 4)
-set_param('sat.threads', 4)
-
 def urandbits(n):
     return int.from_bytes(os.urandom(n//8),'big')
 
@@ -1069,7 +1031,6 @@ class lcg:
         self.a = a
         self.b = b
         self.m = m
-
     def next(self):
         self.state = (self.state * self.a + self.b) % self.m
         return self.state
@@ -1085,7 +1046,6 @@ class Breaker_lcg(lcg):
         p = gcd(*prods)
         a = (diffs[1]*gmpy2.invert(diffs[0],p))%p
         b = (outputs[1]-a*outputs[0])%p
-
         assert all(j == (a*i + b)%p for i,j in zip(outputs,outputs[1:]))
         print(f"Recovered internal constants from {len(outputs)}\
              outputs : p = {p} a = {a} b = {b}")
@@ -1098,10 +1058,8 @@ def all_smt(s, initial_terms):
     """
     def block_term(s, m, t):
         s.add(t != m.eval(t))
-
     def fix_term(s, m, t):
         s.add(t == m.eval(t))
-
     def all_smt_rec(terms):
         if sat == s.check():
             m = s.model()
@@ -1124,12 +1082,9 @@ class truncated_lcg:
         self.b = b
         self.n = n
         self.truncation = truncation
-
     def next(self):
         self.state = ((self.a * self.state) + self.b) % self.n
-        # print(self.state)
         return (self.state >> self.truncation)
-        
         
 class Breaker(truncated_lcg):
     def __init__(self, seed, a, b, n, truncation, **kwargs):
@@ -1140,39 +1095,29 @@ class Breaker(truncated_lcg):
         self.known_n: bool = kwargs.get('known_n', True)
         
     def break_sat(self, outputs):
-        """
-        Thought this wont suck
-        well this sucks too XD
-        """
         seed0 = BitVec('seed0', self.n_bitlen)
         seed = ZeroExt(self.n_bitlen,seed0)
         s = Solver()
-
         if (self.known_a):
             a = BitVecVal(self.a, self.n_bitlen)
         else:
             a = BitVec('a', self.n_bitlen)
-            
         if (self.known_b):
             b = BitVecVal(self.b, self.n_bitlen)
         else:
             b = BitVec('b', self.n_bitlen)
-
         if (self.known_n):
             n = BitVecVal(self.n, self.n_bitlen)
         else:
             n = BitVec('n', self.n_bitlen)
-
         s.add(ULT(seed0,n),ULT(a,n),ULT(b,n),UGE(seed0,0),UGE(a,0),UGE(b,0))
         for v in outputs:
             seed = simplify(URem(ZeroExt(self.n_bitlen,a)*seed+\
                 ZeroExt(self.n_bitlen,b), ZeroExt(self.n_bitlen,n)))
             s.add(v == LShR(seed,self.truncation))
-
         start_time, last_time = time(), time()
         terms = [seed0,a,b,n]
         guess = []
-
         for m in all_smt(s,terms):
             SAT_guessed_seed = m[seed0]
             A = m.eval(a)
@@ -1200,34 +1145,24 @@ class Breaker(truncated_lcg):
             L[i, i] = -1
             v[i, 0] = -(outputs[i] << self.truncation) % self.n
         L[0,0] = self.n
-            
         v = L * v
-        
         for i in range(k):
             v[i, 0] += ((1 - self.a ** i) // (self.a - 1)) * self.b
             v[i, 0] %= self.n
-            
         _ = LLL.reduction(L, U)
-
         u = (U * v)
         self.shorten(u)
-
         A = DomainMatrix.from_Matrix(Matrix(k, k, lambda i, \
              j: L[i, j])).convert_to(QQ)
         b = DomainMatrix.from_Matrix(Matrix(k, 1, lambda i, \
              j: u[i, 0])).convert_to(QQ)
         M = (A.inv() * b).to_Matrix()
-
         next_st = (outputs[0] << self.truncation) | int(M[0, 0] % self.n)
-        
         seed = BitVec('seed', self.n_bitlen)
-        
         s = Solver()
         s.add(ULT(seed,self.n),next_st == simplify(URem(self.a * 
         ZeroExt(self.n_bitlen, seed) + self.b, self.n)))
-        
         guess = []
-
         for m in all_smt(s, [seed]):
             lattice_guessed_seed = m[seed]
             print(f"{lattice_guessed_seed = }")
