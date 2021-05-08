@@ -1,36 +1,43 @@
-# Project -  Analysis, state and seed recovery of RNGs  
+# Project -  Analysis, State and Seed recovery of RNGs
 
-|  |  |  |  |
-| :--: | :--: | :--: | :--: |
+|                  |             |               |            |
+|       :--:       |      :--:   |       :--:    |   :--:     |
 | Himanshu Sheoran | Yash Parmar | Lakshya Kumar | Sahil Jain |
-| 170050105 | 170050004 | 170050033 | 180050089 | 
+|     170050105    |   170050004 |     170050033 | 180050089  |   
 
 ## Abstract
-Study of (novel) methods for seed and state recovery using reduced number of outputs for general purpose random number generators like `MT19937`, `MT19937-64`, `LCGs & Truncated LCGs`, `LSFRs`, using **SMT/SAT solvers**.
+Study of novel methods for seed and state recovery with reduced number of outputs for general purpose random number generators like `MT19937`, `MT19937-64`, `LCGs & Truncated LCGs`, `LSFRs`, using **SMT/SAT solvers**. SMT/SAT solvers are used extensively in software-verification, in this paper we demonstrate how SMT solvers can be used as powerful oracles to analyse and break some cryptograpic primitives like random number generators.
+
 
 ## Introduction
 <!-- ### Problem Statement -->
-Given a PRNG algorithm $A$, which is initialised using an initial value aka `seed` and $x_1, x_2, ..., x_k$ be the generated outputs from the random number generator, we wish to determine the starting `seed` or the state $S$ required to predict the future outputs of the generator.
-- ADD some intro of SAT/SMT theory and also a line ro two about z3 solver.
+Given a PRNG algorithm $A$, which is initialised using an initial value aka `seed` and $x_1, x_2, ..., x_k$ be the generated outputs from the random number generator, we wish to determine the starting `seed` or the state $S$ required to predict the future outputs of the generator.  
+
+Our work involves modelling the seed and state recovery problem of a PRNG by encoding it into a [Satisfiability Modulo Theories](https://en.wikipedia.org/wiki/Satisfiability_modulo_theories) (SMT) decision problem, which is an extension of SAT with theories in first order logic.   
+We used the SMT solver [Z3Prover](https://github.com/Z3Prover/z3), as a sequential program written in theory of BitVectors for solving out SMT model of the PRNGs . After (painfully) modelling the program, we begin a SAT solver search (all-SAT to give all satisfying models for possible seed values) which leads us to a given sequence of outputs (the generated random numbers).  
+
+The core idea behind using z3 is that it mixes the program data and the program quite well, eases the modelling a lot.  
+Since theory of Bitvectors translates very well to algorithms designed and written in low level languages like C, and even assembly, most of them can be analysed very efficiently.  
+All we need to care about *the correct SMTlib implementations* to use as the general notion of various operators like bitshifts, comparisons are translated differently based on different scenarios by a compiler.  
+
 <!-- Our solution and what we did -->
-We modelled some RNGs into a SAT/SMT problem and solved it using Z3 Solver. We were able to recover the `seed` of standard mersenne twister (MT19937), which is the most used PRNG across all software systems, using only **3** outputs using SMT solvers in under 5 minutes, whereas all previous work is on state recovery using *624 consecutive outputs*.
+With our method, we were able to recover the `seed` of standard mersenne twister (MT19937), which is the most used PRNG across all software systems, using only **3** outputs using SMT solvers in under 5 minutes, whereas all previous work is on state recovery using *624 consecutive outputs*.
 
-We also employed SMT solvers to recover the state of other well known PRNGs like LCG, LSFRs and combiner generators like Geffe generator using a set of LSFRs.
-<!-- Summary -->
-We aim to understand the predictability of PRNGs especially by modelling them as SAT/SMT problem and further analyse the design of some cryptographically secure PRNGs. Our aim is to try and attack the RNGs and put some light on the fact that SAT theory is very powerfull tool which can break many famous RNGs and hence the cryptosystems that use those RNGs. 
-We also did the case study of the notorious DUAL_EC_DRBG CSPRNG for presence of a kleptographic backdoor to give NSA ability to predict all outputs. This study is an example of the fact that even CSPRNGs are not 100% secure. Especially when the governing body have kept some backdoor in the algorithm.  
+Application of SMT encoding on truncated LCGs yielded comparable and in some cases way better results than the existing lattice based recovery techniques.  
+SMT based attack on Geffe generator results was found to be significantly faster than the known correlation attacks.  
 
-Through our project, we also want to encourage the use of SAT solvers for validating and checking the security and durability of any RNG or cryptographic protocal/system.
+Extending the discussion, we further study the case of notorious DUAL EC DRBG CSPRNG for presence of kleptographic backdoor to gibe NSA the ability to predict all outputs given 32bytes of keystream.
+
+\pagebreak
 
 # Table of Contents
 1. [Mersenne Twister](#mersenne-twister)
 2. [LFSR](#lfsr)
 3. [LCG](#linear-congruential-generator---lcg)
 4. [Dual_EC_DRBG](#dual-ec-drbg---kleptographic-backdoor)
-5. [References](#refrences)
-   
+5. [References](#references)
+6. [Appendix](#appendix)   
 
-\pagebreak 
 
 # Mersenne Twister
 Mersenne Twister (MT) is by far the most widely used general-purpose PRNG, which derives its name from the fact that its period is the Mersenne prime $2^{19937} -1$
@@ -65,8 +72,6 @@ The state needed for a Mersenne Twister implementation is an array of $n$ values
 $$x_i = f \times (x_{i-1} \oplus (x_{i-1} \gg (w-2))) + i$$
 
 for $i$ from 1 to n-1. The first value the algorithm then generates is based on $x_n$. [See for details](#mersenne-gif)
-
-\pagebreak
 
 While implementing, we need to consider only three things   
 1. State initialization i.e. seeding
@@ -123,11 +128,8 @@ These include improved (and hence more non linear) initialization called `init_b
 This gave a very deep idea of how RNGs works in different systems/languages and how non-trivial it is going to be to model them as a SAT problem.
 
 ### Modelling
-After getting all the underlying algorithms and functionalities right, we modelled the seed recovery algorithm as a [Satisfiability Modulo Theories](https://en.wikipedia.org/wiki/Satisfiability_modulo_theories) (SMT) decision problem, which is an extension of SAT with theories in first order logic.   
-We used the SMT solver [Z3Prover](https://github.com/Z3Prover/z3), as a sequential program written in theory of BitVectors for solving out SMT model of MT19937-64 . After (painfully) modelling the program, we begin a SAT solver search (all-SAT to give all satisfying models for possible seed values) which leads us to a given sequence of outputs (the generated random numbers).  
-
-The core idea behind using z3 is that it mixes the program data and the program quite well, eases the modelling a lot. All we need to care about *the correct SMTlib implementations* to use as the general notion of various operators like bitshifts, comparisons are translated differently based on different scenarios by a compiler.  
-e.g. the `tamper` state when written for a `BitVec(32) y` is almost exactly same as we would have written for a python-int
+After getting all the underlying algorithms and functionalities right, we modelled the seed recovery algorithm as a z3  
+The `tamper` state when written for a `BitVec(32) y` is almost exactly same as we would have written for a python-int
 ```python
 def tamper_state(y):
     y = y ^ (LShR(y, u) & d)
@@ -334,7 +336,7 @@ Other drawback of our approach is that SMT solvers operate in the realm of first
 Another drawback can be when there are more than one possible seed/state to produce a given set of outputs, SAT solvers are designed and optimized to find a single satisfying assignment, finding successive assignments, may or may not translate equivalently.
 
 Yet another drawback is lack of parallelism. The current design of SAT/SMT solvers is massively single threaded and may not use the full capabilities and cores of the machine to find a satisfying assignment.
-- [Refrences](#references---mersenne)
+- [References](#references---mersenne)
 
 \pagebreak
 
@@ -437,7 +439,7 @@ We explored a known weak combiner generator where the correlations between vario
 
 This approach can be extended to different combiner generators and seemingly undiscovered correlations can be expoilted in similar  efficient way.
 
-- [Refrences](#references---lfsr)
+- [References](#references---lfsr)
 
 \pagebreak
 
@@ -488,7 +490,7 @@ $$\begin{aligned}
 \end{aligned}$$  
 $Y_i$ are therefore LCG with `b = 0` with the same `a` and `m`, which can be recovered using the above method. Further `b` can be recovered as $b = (X_2 - a * X_1) \bmod m$. Thus, any of the 3 parameters, if unknown, can be recovered as mentioned.
 
-Note that here, $X_1$ denotes the first output and so on; we can then recover the seed as $X_0 = a^{-1} * (X_1 - b) \bmod m$.
+Note that here, $X_1$ denotes the first output and so on; we can then recover the seed as $X_0 = a^{-1} * (X_1 - b) \% m$.
 
 ### Truncated LCG
 Lattice-based attacks have been described on truncated LCGs to recover the internal states. Here we describe one form of attack in which we're provided some number(say $k$) of generated (truncated) outputs $x_i$, $a$, $b$, $m$ and the truncation(say $t$).  
@@ -568,7 +570,7 @@ Dual EC(Elliptic Curve) DRBG(Deterministic Random Bit Generator) was a pseudo-ra
 
 ## Algorithmic Details
 
-![](report_extras/./decdrbg.png)
+![](report_extras/decdrbg.png)
 
 A particular curve $C$ and two points on the curve $P$ and $Q$ are chosen apriori and remain fixed throughout.
 
@@ -620,7 +622,7 @@ The values of $P$ and $Q$ which were used in the actual implementation had been 
 
 \pagebreak
 
-# Refrences
+# References
 ## References - Mersenne
 - [The Mersenne Twister](http://www.quadibloc.com/crypto/co4814.htm) http://www.quadibloc.com/crypto/co4814.htm
 - [Mersenne twister wikipedia](https://en.wikipedia.org/wiki/Mersenne_Twister) https://en.wikipedia.org/wiki/Mersenne_Twister
@@ -950,19 +952,15 @@ from time import time
 
 
 def xgcd(a, b):
-    a1 = 1
-    b1 = 0
-    a2 = 0
-    b2 = 1
-    aneg = 1
-    bneg = 1
+    a1,b1,a2,b2 = 1,0,0,1
+    aneg,bneg = 1,1
     if(a < 0):
         a = -a
         aneg = -1
     if(b < 0):
         b = -b
         bneg = -1
-    while (1):
+    while True:
         quot = -(a // b)
         a = a % b
         a1 = a1 + quot*a2
