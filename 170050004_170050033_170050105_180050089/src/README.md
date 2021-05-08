@@ -448,7 +448,7 @@ Linear Congruential Generator(LCG) is a method of generating a sequence of pseud
 Donald Knuth suggested the usage of Truncated LCG, where only some bits of the internal state are given as output(say upper half bits). These turned out to have much better statistical properties than the original LCGs. However, these are not cryptographically secure either; and indeed there exist attacks which can find out the internal state given a few outputs!
 
 ## Algorithmic Details
-A linear congruential generator maintains an internal state $s$, which is updated on every call to the generator as:  
+A linear congruential generator maintains an internal state $s$, which is updated on every call to the generator as:
 $$s :\equiv (a*s + b) \bmod m.$$ 
 The updated state is the generated pseudo-random number. Therefore, the generated numbers $X_i$ follow the recurrence relation 
 $$ \begin{aligned}
@@ -461,7 +461,7 @@ For a truncated LCG, which outputs certain most significant bits of the internal
 $$X = (s \gg trunc)$$
 where  
 $\gg$ denotes logical right-shift  
-`trunc` is the number of lower bits to be truncated.  
+$trunc$ is the number of lower bits to be truncated.  
 
 ## Background 
 
