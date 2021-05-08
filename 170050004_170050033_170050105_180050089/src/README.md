@@ -449,11 +449,11 @@ Donald Knuth suggested the usage of Truncated LCG, where only some bits of the i
 
 ## Algorithmic Details
 A linear congruential generator maintains an internal state $s$, which is updated on every call to the generator as:  
-$$s := (a*s + b) \bmod m.$$ 
+$$s :\equiv (a*s + b) \bmod m.$$ 
 The updated state is the generated pseudo-random number. Therefore, the generated numbers $X_i$ follow the recurrence relation 
 $$ \begin{aligned}
-    X_{i+1} &= (a*X_i + b) \bmod m \\
-    i.e.\ X_i &= (a^{i} * X_0 + b*(1 + a + \dots + a^{i-1})) \bmod m
+    X_{i+1} & \equiv (a*X_i + b) \bmod m \\
+    i.e.\ X_i & \equiv (a^{i} * X_0 + b*(1 + a + \dots + a^{i-1})) \bmod m
 \end{aligned}$$ 
 Note that $0 \le X_i, s, a, b < m$.
 
@@ -470,37 +470,35 @@ It has been shown that given sufficient number of outputs, the parameters of a s
 
 Assume that $b = 0$. Then we have  
 $$\begin{aligned}
-    X_{i+1} &= a*X_i \bmod m \\
-    X_{i+2} &= a^2 * X_i \bmod m 
+    X_{i+1} & \equiv a*X_i \bmod m \\
+    X_{i+2} & \equiv a^2 * X_i \bmod m 
     \implies m | (X_{i+2} * X_i - X_{i+1}^2)
 \end{aligned}$$
 Thus, $m$ would be a divisor of the GCD of 
 $$X_{i+2} * X_i - X_{i+1}^2 , \forall i$$
 Given more and more outputs, the probability of $m$ being the GCD itself rises. In this manner $m$ can be recovered. Knowing $m$ and $X_i$, $a$ can be recovered as 
-$$a = X_{i+1} * X_i^{-1} \bmod m$$  
+$$a \equiv X_{i+1} * X_i^{-1} \bmod m$$  
 
 Suppose now that $b \ne 0$. Given $X_i$, we define 
-$$Y_i = (X_{i+1} - X_i) \bmod m$$
+$$Y_i \equiv (X_{i+1} - X_i) \bmod m$$
 So,
 $$\begin{aligned}
-    Y_{i+1} &= (X_{i+2} - X_{i+1}) \bmod m \\
-    &= [(a * X_{i+1} + b) - (a * X_i + b)] \bmod m \\  
-    &= [a * (X_{i+1} - X_i)] \bmod m = (a * Y_i) \bmod m
+    Y_{i+1} & \equiv (X_{i+2} - X_{i+1}) \bmod m \\
+    & \equiv [(a * X_{i+1} + b) - (a * X_i + b)] \bmod m \\  
+    & \equiv [a * (X_{i+1} - X_i)] \bmod m \equiv (a * Y_i) \bmod m
 \end{aligned}$$  
-$Y_i$ are therefore LCG with `b = 0` with the same `a` and `m`, which can be recovered using the above method. Further `b` can be recovered as $b = (X_2 - a * X_1) \bmod m$. Thus, any of the 3 parameters, if unknown, can be recovered as mentioned.
+$Y_i$ are therefore LCG with $b = 0$ with the same $a$ and $m$, which can be recovered using the above method. Further $b$ can be recovered as $b \equiv (X_2 - a * X_1) \bmod m$. Thus, any of the 3 parameters, if unknown, can be recovered as mentioned.
 
-Note that here, $X_1$ denotes the first output and so on; we can then recover the seed as $X_0 = a^{-1} * (X_1 - b) \% m$.
+Note that here, $X_1$ denotes the first output and so on; we can then recover the seed as $X_0 \equiv a^{-1} * (X_1 - b) \bmod m$.
 
 ### Truncated LCG
 Lattice-based attacks have been described on truncated LCGs to recover the internal states. Here we describe one form of attack in which we're provided some number(say $k$) of generated (truncated) outputs $x_i$, $a$, $b$, $m$ and the truncation(say $t$).  
 $$\begin{aligned}
-    x_i &=  X_i \gg t \\
-    X_{i+1} &= (a*X_i + b) \bmod m \\
-    \therefore X_i &= 2^t * x_i + y_i\\
-    &&where\ 0 \le y_i < 2^t \\
-    &&x_i = known\ bits\\
-    &&y_i\ are\ the\ unknowns
+    x_i & =  X_i \gg t \\
+    X_{i+1} & \equiv (a*X_i + b) \bmod m \\
+   \implies X_i &= 2^t * x_i + y_i\\
 \end{aligned}$$
+where $0 \le y_i < 2^t$, $x_i =$ known bits \& $y_i =$ unknown bits.
 
 The forthcoming attack is borrowed from this [paper](https://www.math.cmu.edu/~af1p/Texfiles/RECONTRUNC.pdf) on reconstructing truncated integer variables satisfying linear congruences. 
 
@@ -509,7 +507,7 @@ Consider the matrix $L$ defined for some $k$ as -
 ![](report_extras/l1.png)
 Note that,   
 $$\begin{aligned}
-    X_i &= [a^{i-1} * X_1 + b(1 + a + \dots + a^{i-2})] \bmod M \\
+    X_i & \equiv [a^{i-1} * X_1 + b(1 + a + \dots + a^{i-2})] \bmod M \\
     &= a^{i-1} * X_1 + b\left( \frac{a^{i-1}-1}{a-1}\right) + M \cdot \alpha_{i-1}
 \end{aligned}$$  
 for some $\alpha_{i-1} \in Z$.  
@@ -522,13 +520,12 @@ Using the above equation,
 
 ![](report_extras/l3.png)
 
-Consider,  
+Let $c$ be the above vector, taken modulo $M$, then considering
 $L'_r =$ LLL reduced basis of $L'$ and\
-$c_r$ such that each element of $c_r \leq \frac{M}{2}$ in absolute value. i.e. $c_r (\bmod M) = c (\bmod M)$   
+$c_r$ such that each element of $c_r \leq \frac{M}{2}$ in absolute value. i.e. $c_r (\bmod M) \equiv c (\bmod M)$   
 Then, the mentioned paper shows that there exists **atmost one integral "small" solution** to the (non-modular) linear equation 
 $$\begin{aligned}
-    L'_r \cdot y &= c_r \\
-    && where\ y = [y_1, y_2, ..., y_k] \\
+    L'_r \cdot y &= c_r && \text{ where $y = [y_1, y_2, \dots, y_k]$ }\\
     \therefore y &= (L'_r)^{-1} \cdot c_r
 \end{aligned}$$
 Thus,
