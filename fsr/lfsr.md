@@ -47,10 +47,9 @@ There are $2^3 = 8$ possible values for the outputs of the three registers, and 
 |  |  |  |  |  |  |  |  |  | 
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | $x_1$ | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 
-| $x_2$ | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 
-| $x_3$ | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 
-| $F(x_1, x_2, x_3)$ | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 
-|  |  |  |  |  |  |  |  |  | 
+| $x_2$ | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 
+| $x_3$ | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 
+| $F(x_1, x_2, x_3)$ | 0 | 1 | 0 | 1 | 0 | 0 | 1 | 1 | 
 
 Consider the output of the third register, $x_3$. The table above makes it clear that of the 8 possible outputs of $x_3$, 6 of them are equal to the corresponding value of the generator output, $F(x_1, x_2, x_3)$, i.e. $x_3 = F( x_1, x_2,x_3 )$ in **75%** of all possible cases. This correlation can be exploited to have a brute force search on the key bits of LSFR-3, since on correct key we would observe an advantage of 1/4 over any other key.
 This will reduce the brute forcing of 3 LFSRs to only 2 LFSRs!!\
