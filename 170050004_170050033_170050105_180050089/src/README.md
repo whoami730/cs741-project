@@ -571,7 +571,6 @@ Dual EC(Elliptic Curve) DRBG(Deterministic Random Bit Generator) was a pseudo-ra
 
 ## Algorithmic Details
 
-![](report_extras/decdrbg.png)
 
 A particular curve $C$ and two points on the curve $P$ and $Q$ are chosen apriori and remain fixed throughout.
 
@@ -605,6 +604,8 @@ $$r_i * P = r_i * d * Q = (r_i * Q) * d$$
 This not only compromises the security of the RNG, but also allows the attacker to be able to predict all future outputs of the RNG.
 
 It was [shown](https://eprint.iacr.org/2006/190.pdf) that the generated `240` bits are not indistinguishable from truly random bits but actually admit non-negligible bias; thus demonstrating that the generator is insecure! Even though [some papers](https://eprint.iacr.org/2007/048.pdf) tried to show that DEC-DRBG was based on `cryptographically hard` problems; the possibility of a [kleptographic backdoor](https://rump2007.cr.yp.to/15-shumow.pdf) was later demonstrated. With this backdoor, one could essentially break down TLS just by monitoring one encryption connection.
+
+![](report_extras/decdrbg_better.png)
 
 ## Our Work
 In our Proof-of-Concept, we demonstrate that choosing $P$ and $Q$ of our own accord(that is, if we by chance know $e$ or $d$) allows us to recover the internal state of the RNG in approximately `32 bytes(256 bits)` of the output. This confirms the possibility of there being a backdoor in the RNG, and hence, allowing the attacker to compromise encryptions which relied on Dual-EC-DRBG as the random number generator.
