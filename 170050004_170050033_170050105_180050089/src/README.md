@@ -20,15 +20,15 @@ The core idea behind using z3 is that it mixes the program data and the program 
 Since theory of Bitvectors translates very well to algorithms designed and written in low level languages like C, and even assembly, most of them can be analysed very efficiently.  
 All we need to care about *the correct SMTlib implementations* to use as the general notion of various operators like bitshifts, comparisons are translated differently based on different scenarios by a compiler.  
 
-
-
 <!-- Our solution and what we did -->
-We modelled some RNGs into a SAT/SMT problem and solved it using Z3 Solver. We were able to recover the `seed` of standard mersenne twister (MT19937), which is the most used PRNG across all software systems, using only **3** outputs using SMT solvers in under 5 minutes, whereas all previous work is on state recovery using *624 consecutive outputs*.
+With our method, we were able to recover the `seed` of standard mersenne twister (MT19937), which is the most used PRNG across all software systems, using only **3** outputs using SMT solvers in under 5 minutes, whereas all previous work is on state recovery using *624 consecutive outputs*.
 
-
-We also employed SMT solvers to recover the state of other well known PRNGs like LCG, LSFRs and combiner generators like Geffe generator using a set of LSFRs.  
+Application of SMT encoding on truncated LCGs yielded comparable and in some cases way better results than the existing lattice based recovery techniques.  
+SMT based attack on Geffe generator results was found to be significantly faster than the known correlation attacks.  
 
 Extending the discussion, we further study the case of notorious DUAL EC DRBG CSPRNG for presence of kleptographic backdoor to gibe NSA the ability to predict all outputs given 32bytes of keystream.
+
+\pagebreak
 
 # Table of Contents
 1. [Mersenne Twister](#mersenne-twister)
@@ -38,7 +38,6 @@ Extending the discussion, we further study the case of notorious DUAL EC DRBG CS
 5. [References](#references)
 6. [Appendix](#appendix)   
 
-\pagebreak 
 
 # Mersenne Twister
 Mersenne Twister (MT) is by far the most widely used general-purpose PRNG, which derives its name from the fact that its period is the Mersenne prime $2^{19937} -1$
@@ -73,8 +72,6 @@ The state needed for a Mersenne Twister implementation is an array of $n$ values
 $$x_i = f \times (x_{i-1} \oplus (x_{i-1} \gg (w-2))) + i$$
 
 for $i$ from 1 to n-1. The first value the algorithm then generates is based on $x_n$. [See for details](#mersenne-gif)
-
-\pagebreak
 
 While implementing, we need to consider only three things   
 1. State initialization i.e. seeding
@@ -131,11 +128,8 @@ These include improved (and hence more non linear) initialization called `init_b
 This gave a very deep idea of how RNGs works in different systems/languages and how non-trivial it is going to be to model them as a SAT problem.
 
 ### Modelling
-After getting all the underlying algorithms and functionalities right, we modelled the seed recovery algorithm as a [Satisfiability Modulo Theories](https://en.wikipedia.org/wiki/Satisfiability_modulo_theories) (SMT) decision problem, which is an extension of SAT with theories in first order logic.   
-We used the SMT solver [Z3Prover](https://github.com/Z3Prover/z3), as a sequential program written in theory of BitVectors for solving out SMT model of MT19937-64 . After (painfully) modelling the program, we begin a SAT solver search (all-SAT to give all satisfying models for possible seed values) which leads us to a given sequence of outputs (the generated random numbers).  
-
-The core idea behind using z3 is that it mixes the program data and the program quite well, eases the modelling a lot. All we need to care about *the correct SMTlib implementations* to use as the general notion of various operators like bitshifts, comparisons are translated differently based on different scenarios by a compiler.  
-e.g. the `tamper` state when written for a `BitVec(32) y` is almost exactly same as we would have written for a python-int
+After getting all the underlying algorithms and functionalities right, we modelled the seed recovery algorithm as a z3  
+The `tamper` state when written for a `BitVec(32) y` is almost exactly same as we would have written for a python-int
 ```python
 def tamper_state(y):
     y = y ^ (LShR(y, u) & d)
@@ -412,15 +406,15 @@ We observed significantly faster runtimes using the Z3 boolean model as compared
 
 | Specifications                   |   Time taken using brute-force    | Time taken using Z3 solver |
 | :------------------------------- | :-------------------------------: | :------------------------: |
-| 10-bit seed each, 128 bit output |              01.50s               |           0.25s            |
-| 12-bit seed each, 128 bit output |              06.25s               |           0.26s            |
-| 12-bit seed each, 256 bit output |              12.50s               |           0.41s            |
-| 12-bit seed each, 350 bit output |              16.62s               |           0.54s            |
-| 13-bit seed each, 256 bit output |              25.08s               |           0.74s            |
-| 14-bit seed each, 256 bit output |              52.30s               |           1.12s            |
-| 16-bit seed each, 256 bit output |              222.66s              |           4.53s            |
-| 16-bit seed each, 512 bit output |              449.29s              |           5.99s            |
-| 18-bit seed each, 256 bit output |              936.59s              |           29.33s           |
+| 30-bit seed, 128 bit output |              01.50s               |           0.25s            |
+| 36-bit seed, 128 bit output |              06.25s               |           0.26s            |
+| 36-bit seed, 256 bit output |              12.50s               |           0.41s            |
+| 36-bit seed, 350 bit output |              16.62s               |           0.54s            |
+| 39-bit seed, 256 bit output |              25.08s               |           0.74s            |
+| 42-bit seed, 256 bit output |              52.30s               |           1.12s            |
+| 48-bit seed, 256 bit output |              222.66s              |           4.53s            |
+| 48-bit seed, 512 bit output |              449.29s              |           5.99s            |
+| 54-bit seed, 256 bit output |              936.59s              |           29.33s           |
 | <!--                             | 24-bit seed each, 2048 bit output |         - Timout -         | 400.45s | --> |
 While the runtime of discovered correlation attack is observably *exponential* in the number of bits of LFSRs whereas, observed runtime of our approach is *subexponential/polynomial*, since boolean constraints are relatively sparse and SAT solvers are highly optimized in solving such boolean constraints.  
 
