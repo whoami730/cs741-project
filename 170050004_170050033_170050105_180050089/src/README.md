@@ -442,22 +442,24 @@ Linear Congruential Generator(LCG) is a method of generating a sequence of pseud
 Donald Knuth suggested the usage of Truncated LCG, where only some bits of the internal state are given as output(say upper half bits). These turned out to have much better statistical properties than the original LCGs. However, these are not cryptographically secure either; and indeed there exist attacks which can find out the internal state given a few outputs!
 
 ## Algorithmic Details
-A linear congruential generator maintains an internal state $s$, which is updated on every call to the generator as $s := (a*s + b) \% m$. The updated state is the generated pseudo-random number. Therefore, the generated numbers $X_i$ follow the recurrence relation $X_{i+1} = (a*X_i + b) \% m$, or, equivalently $X_i = (a^{i} * X_0 + b*(1 + a + \dots + a^{i-1})) \% m$. Note that $0 \le X_i, s, a, b < m$.
+A linear congruential generator maintains an internal state $s$, which is updated on every call to the generator as $s := (a*s + b) \bmod m$. The updated state is the generated pseudo-random number. Therefore, the generated numbers $X_i$ follow the recurrence relation $X_{i+1} = (a*X_i + b) \bmod m$, or, equivalently $X_i = (a^{i} * X_0 + b*(1 + a + \dots + a^{i-1})) \bmod m$. Note that $0 \le X_i, s, a, b < m$.
 
-For a truncated LCG which outputs certain most significant bits of the internal state, generated number $X$ can be written as $X = (s \gg trunc)$ where $\gg$ denotes logical right-shift and $trunc$ is the number of lower bits to be truncated.
-## Background
-### LCG
+For a truncated LCG which outputs certain most significant bits of the internal state, generated number $X$ can be written as $X = (s \gg trunc)$ where $\gg$ denotes logical right-shift and $trunc$ is the number of lower bits to be truncated. 
+
+## Background 
+
+### LCG 
 It has been shown that given sufficient number of outputs, the parameters of a secret LCG can be recovered as follows.
 
-Assume that $b = 0$. Then we have $X_{i+1} = a*X_i \% m$ \& $X_{i+2} = a^2 * X_i \% m \implies m | (X_{i+2} * X_i - X_{i+1}^2)$. Thus, $m$ would be a divisor of the GCD of $X_{i+2} * X_i - X_{i+1}^2 , \forall i$. Given more and more outputs, the probability of $m$ being the GCD itself rises. In this manner $m$ can be recovered. Knowing $m$ and $X_i$, $a$ can be recovered as $a = X_{i+1} * X_i^{-1} \% m$.  
+Assume that $b = 0$. Then we have $X_{i+1} = a*X_i \bmod m$ \& $X_{i+2} = a^2 * X_i \bmod m \implies m | (X_{i+2} * X_i - X_{i+1}^2)$. Thus, $m$ would be a divisor of the GCD of $X_{i+2} * X_i - X_{i+1}^2 , \forall i$. Given more and more outputs, the probability of $m$ being the GCD itself rises. In this manner $m$ can be recovered. Knowing $m$ and $X_i$, $a$ can be recovered as $a = X_{i+1} * X_i^{-1} \bmod m$.  
 
-Suppose now that $b \ne 0$. Given $X_i$, we define $Y_i = (X_{i+1} - X_i) \% m$. Then $Y_{i+1} = (X_{i+2} - X_{i+1}) \% m = [(a * X_{i+1} + b) - (a * X_i + b)] \% m = [a * (X_{i+1} - X_i)] \% m = (a * Y_i) \% m$. $Y_i$ are therefore LCG with $b = 0$ with the same $a$ and $m$, which can be recovered using the above method. Further $b$ can be recovered as $b = (X_2 - a * X_1) \% m$. Thus, any of the 3 parameters, if unknown, can be recovered as mentioned.
+Suppose now that $b \ne 0$. Given $X_i$, we define $Y_i = (X_{i+1} - X_i) \bmod m$. Then $Y_{i+1} = (X_{i+2} - X_{i+1}) \bmod m = [(a * X_{i+1} + b) - (a * X_i + b)] \bmod m = [a * (X_{i+1} - X_i)] \bmod m = (a * Y_i) \bmod m$. $Y_i$ are therefore LCG with $b = 0$ with the same $a$ and $m$, which can be recovered using the above method. Further $b$ can be recovered as $b = (X_2 - a * X_1) \bmod m$. Thus, any of the 3 parameters, if unknown, can be recovered as mentioned.
 
-Note that here, $X_1$ denotes the first output and so on; we can then recover the seed as $X_0 = a^{-1} * (X_1 - b) \% m$.
+Note that here, $X_1$ denotes the first output and so on; we can then recover the seed as $X_0 = a^{-1} * (X_1 - b) \bmod m$.
 
 ### Truncated LCG
 Lattice-based attacks have been described on truncated LCGs to recover the internal states. Here we describe one form of attack in which we're provided some number(say $k$) of generated (truncated) outputs $x_i$, $a$, $b$, $m$ and the truncation(say $t$).  
-$x_i =  X_i \gg t, X_{i+1} = (a*X_i + b) \% m \implies X_i = 2^t * x_i + y_i$, where $0 \le y_i < 2^t$. Here, $x_i$ are known to us while $y_i$ are the unknowns.
+$x_i =  X_i \gg t, X_{i+1} = (a*X_i + b) \bmod m \implies X_i = 2^t * x_i + y_i$, where $0 \le y_i < 2^t$. Here, $x_i$ are known to us while $y_i$ are the unknowns.
 
 The forthcoming attack is borrowed from this [paper](https://www.math.cmu.edu/~af1p/Texfiles/RECONTRUNC.pdf) on reconstructing truncated integer variables satisfying linear congruences. 
 
@@ -465,7 +467,7 @@ Consider the matrix $L$ defined for some $k$ as -
 
 ![](l1.png)
 
-since $X_i = [a^{i-1} * X_1 + b(1 + a + \dots + a^{i-2})] \% M = a^{i-1} * X_1 + b \frac{a^{i-1}-1}{a-1} + M \alpha_{i-1}$ for some $\alpha_{i-1} \in Z$. Note that here $L$ is a $2k-1 \times k$ lattice, and we also observe that the bottom $k-1$ rows can all be written as linear combinations of the top $k$ rows, and therefore, the top $k$ rows form a basis for this lattice. Thus, we can rewrite it as:
+since $X_i = [a^{i-1} * X_1 + b(1 + a + \dots + a^{i-2})] \bmod M = a^{i-1} * X_1 + b \frac{a^{i-1}-1}{a-1} + M \alpha_{i-1}$ for some $\alpha_{i-1} \in Z$. Note that here $L$ is a $2k-1 \times k$ lattice, and we also observe that the bottom $k-1$ rows can all be written as linear combinations of the top $k$ rows, and therefore, the top $k$ rows form a basis for this lattice. Thus, we can rewrite it as:
 
 ![](l2.png)
 
@@ -473,7 +475,7 @@ Also, since $X_i = 2^t * x_i + y_i$, the above equation can be re-written as:
 
 ![](l3.png)
 
-Consider the LLL reduced basis for $L'$ denoted by $L'_r$, and consider $c_r$ such that each element of $c_r$ is $\le \frac{M}{2}$ in absolute value(ensuring $c_r (\% M) = c (\% M)$). Then, the mentioned paper shows that there exists **atmost one integral "small" solution** to the (non-modular) linear equation $L'_r \cdot y = c_r$, where $y$ denotes the vector consisting of entries $y_1$ upto $y_k$! Thus, we can solve for $y$ by computing the inverse of $L'_r$. Thus, the obtained first coordinate of $y$ would be our $y_1$; and we can then obtain $X_1$ as $X_1 = 2^t * x_1 + y_1$. The only catch here is whether this `small` solution indeed is the correct solution, that is whether our expected $y$ indeed satisfies the mentioned norm bounds. The paper proves that for random LCGs this holds true with a good probability, given sufficient number of output-bits and sufficient information to be guessed.
+Consider the LLL reduced basis for $L'$ denoted by $L'_r$, and consider $c_r$ such that each element of $c_r$ is $\le \frac{M}{2}$ in absolute value(ensuring $c_r (\bmod M) = c (\bmod M)$). Then, the mentioned paper shows that there exists **atmost one integral "small" solution** to the (non-modular) linear equation $L'_r \cdot y = c_r$, where $y$ denotes the vector consisting of entries $y_1$ upto $y_k$! Thus, we can solve for $y$ by computing the inverse of $L'_r$. Thus, the obtained first coordinate of $y$ would be our $y_1$; and we can then obtain $X_1$ as $X_1 = 2^t * x_1 + y_1$. The only catch here is whether this `small` solution indeed is the correct solution, that is whether our expected $y$ indeed satisfies the mentioned norm bounds. The paper proves that for random LCGs this holds true with a good probability, given sufficient number of output-bits and sufficient information to be guessed.
 
 ## Our Work
 We have implemented both the aforementioned attacks in python3. The attack on LCG allows us to recover the seed easily. However, the lattice-based attack on truncated LCG is somewhat different in the sense that the method only allows us to recover $X_1$, which is not the seed we seek.  
