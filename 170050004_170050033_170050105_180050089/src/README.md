@@ -1,4 +1,4 @@
-# Project -  Analysis, State and Seed recovery of RNGs
+#           Analysis, State and Seed recovery of RNGs
 
 |                  |             |               |            |
 |       :--:       |      :--:   |       :--:    |   :--:     |
@@ -28,15 +28,15 @@ SMT based attack on Geffe generator results was found to be significantly faster
 
 Extending the discussion, we further study the case of notorious DUAL EC DRBG CSPRNG for presence of kleptographic backdoor to gibe NSA the ability to predict all outputs given 32bytes of keystream.
 
-# Table of Contents
+<!-- # Table of Contents
 1. [Mersenne Twister](#mersenne-twister)
 2. [LFSR](#lfsr)
 3. [LCG](#linear-congruential-generator---lcg)
 4. [Dual_EC_DRBG](#dual-ec-drbg---kleptographic-backdoor)
 5. [References](#references)
-6. [Appendix](#appendix)   
+6. [Appendix](#appendix)    -->
 
-\pagebreak
+
 
 # Mersenne Twister
 Mersenne Twister (MT) is by far the most widely used general-purpose PRNG, which derives its name from the fact that its period is the Mersenne prime $2^{19937} -1$
@@ -71,6 +71,8 @@ The state needed for a Mersenne Twister implementation is an array of $n$ values
 $$x_i = f \times (x_{i-1} \oplus (x_{i-1} \gg (w-2))) + i$$
 
 for $i$ from 1 to n-1. The first value the algorithm then generates is based on $x_n$. [See for details](#mersenne-gif)
+
+\pagebreak
 
 While implementing, we need to consider only three things   
 1. State initialization i.e. seeding
@@ -115,20 +117,19 @@ there exist various conference talks for Mersenne twister seed and state recover
 The most famous  way to recover the state of Mersenne Twister is using any 624 consecutive outputs. [We implemented the same](#state-recovery-from-624-consecutive-outputs) for comparison with our SAT-model.
 
 ## Our Work
-We began with the implementation of standard MT19937 from algorithm described in [Mersenne Twister on Wikipedia](https://en.wikipedia.org/wiki/Mersenne_Twister). This involved a lot of debugging and testing against various random number library implementations, *reading the source code* of the MT implementations in  
+We began with the implementation of standard MT19937 from algorithm described [on Wikipedia](https://en.wikipedia.org/wiki/Mersenne_Twister). This involved a lot of debugging and testing against various random number library implementations, *reading the source code* of the MT implementations in  
 - [Python _randommodule.c](https://github.com/python/cpython/blob/master/Modules/_randommodule.c)  
 - [ruby_2_7/random.c](https://github.com/ruby/ruby/blob/ruby_2_7/random.c)  
 - [PHP random.c](https://github.com/php/php-src/blob/master/ext/standard/random.c)  
 - [C++ libstdc++ gcc](https://code.woboq.org/gcc/libstdc++-v3/include/bits/random.tcc.html)
 
-And figuring out how each of these vary from the standard implementation on wiki. 
+And figuring out how each of these vary from the standard implementation.
 More or less, each one of these use the standard MT as an API to extract 32 bit uniformly random values from the underlying state of MT then constructing their own API out of this functionality.  
 These include improved (and hence more non linear) initialization called `init_by_array` as proposed in [MT2002](http://www.math.sci.hiroshima-u.ac.jp/m-mat/MT/MT2002/emt19937ar.html), translation of equivalent functions from (usually) underlying c implementations to python and testing them rigorously to match the outputs and state. This is a bit challenging due to the fact python treats all integers without bounds and we need to ensure the general assertion of `int_32` everywhere is valid.  
 This gave a very deep idea of how RNGs works in different systems/languages and how non-trivial it is going to be to model them as a SAT problem.
 
 ### Modelling
-After getting all the underlying algorithms and functionalities right, we modelled the seed recovery algorithm as a z3  
-The `tamper` state when written for a `BitVec(32) y` is almost exactly same as we would have written for a python-int
+After getting all the underlying algorithms and functionalities right, we modelled the seed recovery algorithm as a z3 formula. The `tamper` state when written for a `BitVec(32) y` is almost exactly same as we would have written for a python-int
 ```python
 def tamper_state(y):
     y = y ^ (LShR(y, u) & d)
@@ -237,6 +238,7 @@ def untwist(outputs):
 ```
 Thus, the state can be twisted easily and almost instantaneously, upto the correctness of 623 states and MSB of first value, since only the MSB of first value is used in the twist operation.
 
+
 #### State recovery with truncated outputs
 State recovery from the standard 32-bits outputs is very restrictive. We explored more *general* ways of state recovery from truncated outputs i.e when the required output is not 32 bits.  
 When less than 32 bits are required, the given 32-bit random value of MT is masked or truncated to produce a given output. If a value larger than 32 bits is required, as many 32-bit calls are made and the last one is truncated.  
@@ -249,7 +251,7 @@ def random.random():
     # 2**26 = 67108864
     return (a*67108864.0+b)*(1.0/9007199254740992.0)
 ```
-to generate a uniform random 64-bit floating point between [0,1], it will require `53-bit precision` for which it makes two underlying MT calls, first call is truncated `5 bits` to give MSB 27 bits and second truncated `6 bits` to give LSB 26 bits. This can be modelled effectively by assuming a starting state of MT array, extracting outputs and twisting whenever it is required.  
+to generate a uniform random 64-bit floating point between [0,1], it will require `53-bit precision` for which it makes two underlying MT calls, first call is truncated `5 bits` to give MSB 27 bits and second truncated `6 bits` to give LSB 26 bits. This can be modelled effectively by assuming a starting state of MT array, extracting outputs and twisting as required.  
 ```python
 def state_recovery_rand(outputs):
     MT = [BitVec(f'MT[{i}]',32) for i in range(624)]
@@ -282,16 +284,14 @@ def init_by_array(init_key):
         i += 1
         j = (j+1)%len(init_key)
         if i >= n:
-            MT[0] = MT[n - 1]
-            i = 1
+            MT[0],i = MT[n - 1],1
     for k in range(n - 1):
         MT[i] = (MT[i] ^ (
             (MT[i - 1] ^ (MT[i - 1] >> 30)) * 1566083941)) - i
         MT[i] &= 0xffffffff
         i += 1
         if i >= n:
-            MT[0] = MT[n - 1]
-            i = 1
+            MT[0],i = MT[n - 1],1
     MT[0] = 0x80000000
 ```
 Given a set of outputs, recovering the initial seed is a lot tricky here.  
@@ -337,7 +337,7 @@ Another drawback can be when there are more than one possible seed/state to prod
 Yet another drawback is lack of parallelism. The current design of SAT/SMT solvers is massively single threaded and may not use the full capabilities and cores of the machine to find a satisfying assignment.
 - [References](#references---mersenne)
 
-\pagebreak
+
 
 # LFSRs - Linear Feedback Shift Registers
 Linear Feeback shift registers are one of the easiest and simplest way to generate seemingly random bits from known bits. The word linear suggests that the algorithm is linear in nature, as in, the next output bit depends linearly on previous bit(s).  
@@ -375,9 +375,8 @@ and $n$ is the index variable used to loop through the syndromes from 0 to N-1.
 With each iteration, the algorithm calculates the **discrepancy** $d$ between the candidate and the actual feedback polynomial: 
 $$ d = S_k+c_1S_{k-1}+ ... + c_LS_{k-L} $$
 If the discrepancy is zero, the algorithm assumes that $C$ is a valid candidate and continues. Else, if $d\ne0$, the candidate $C$ must be adjusted such, that a recalculation of the discrepancy would lead to $d = 0$. This re-adjustments is done as follows: 
-$$ C= C- (d/b)X^mB $$
-where,\
-$B$ is a copy of the *last candidate* $C$ since $L$ was updated,\
+$$ C= C- (d/b)X^mB $$  
+where, $B$ is a copy of the *last candidate* $C$ since $L$ was updated,\
 $b$ a copy of the *last discrepancy* since $L$ was updated,\
 and the multiplication by X^m is but an index shift. \
 The new discrepancy can now easily be computed as $d = d-(d/b)b = d-d = 0$. This above algorithm can further be simplified for modulo 2 case. See Wiki.
@@ -429,8 +428,7 @@ While the runtime of discovered correlation attack is observably `exponential` i
 Understanding Berlekamp-Massey algorithm was a bit difficult beacuse the original paper is much notation intensive and it's not straight forward. Many online explanation add their own simplification ot the algorithm which made understanding even somewhat confusing.  
 While modeling the LFSR into a SAT solver we ran into a problem, rather a limitation, that we need to know the degree (number of bits) of the combination polynomial. This is not known beforehand and hence we were forced to take a guess.  
 
-## Limitations / Assumptions
-### Berlekamp-Massey VS SAT modeling
+## Berlekamp-Massey VS SAT modeling
 For finding the minimum degree feedback polynomial using SAT encoding, we ran into the problem of not knowing the degree of the polynomial, thus we need to enumerate over the possible guesses of the degree and checking the satisfiability of the generated boolean formula over LSFR state bits and output bits. Since we have no expected bounds on runtimes, we could not conclude termination while recovering the minimal polynomial using the SAT encoding approach.
 
 ## Future Scope
@@ -440,7 +438,7 @@ This approach can be extended to different combiner generators and seemingly und
 
 - [References](#references---lfsr)
 
-\pagebreak
+
 
 # Linear Congruential Generator - LCG
 Linear Congruential Generator(LCG) is a method of generating a sequence of pseudo-randomized numbers using modular arithmetic. This method has seen quite widespread usage since the theory behind this method is pretty easy to understand and is also easy to implement as well as fast and require minimal memory, especially on computer hardware. However, they are as secure as it may seem from their popularity.
@@ -636,7 +634,7 @@ Another major limitation is that since SAT solvers work in exponential or subexp
 
 - [References](#references---lcg)  
 
-\pagebreak
+
 
 # Dual EC DRBG - Kleptographic Backdoor
 
@@ -695,7 +693,7 @@ If only one output(`240` bits) can be obtained from the RNG, $~2^{15}$ possible 
 
 The values of $P$ and $Q$ which were used in the actual implementation had been publicised by NSA to be the ones which allowed "fast computations", nobody knows where these values actually came from! Since the values were chosen by themselves, it is unknown whether they actually had utilized this backdoor but the existence of a backdoor in a popular PRNG is very troublesome to the cryptographic community in itself.
 
-\pagebreak
+
 
 # References
 ## References - Mersenne
