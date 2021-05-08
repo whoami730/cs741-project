@@ -504,7 +504,45 @@ The forthcoming attack is borrowed from this [paper](https://www.math.cmu.edu/~a
 
 Consider the matrix $L$ defined for some $k$ as -
 
-![](report_extras/l1.png)
+$$L = \begin{bmatrix}
+    a & -1 & 0 & \dots & 0\\
+    a^2 & 0 & -1 & \dots & 0\\
+    \vdots & \vdots & \vdots & \ddots & \vdots\\
+    a^{k-1} & 0 & 0 & \dots & -1\\
+    M & 0 & 0 & \dots & 0\\
+    0 & M & 0 & \dots & 0\\
+    0 & 0 & M & \dots & 0\\
+    \vdots & \vdots & \vdots & \ddots & \vdots\\
+    0 & 0 & 0 & \dots & M\\
+\end{bmatrix}$$
+
+$$\implies L \begin{bmatrix}
+    X_1\\
+    X_2\\
+    X_3\\
+    \vdots\\
+    X_k\\
+\end{bmatrix} = \begin{bmatrix}
+    b + M \alpha_1\\
+    b(1+a) + M \alpha_2\\
+    \vdots\\
+    b(1+a+\dots+a^{k-2}) + M \alpha_{k-1}\\
+    M X_1\\
+    M X_2\\
+    M X_3\\
+    \vdots\\
+    M X_k\\
+\end{bmatrix} \equiv \begin{bmatrix}
+    b\frac{a-1}{a-1}\\
+    b\frac{a^2-1}{a-1}\\
+    \vdots\\
+    b\frac{a^{k-1}-1}{a-1})\\
+    0\\
+    0\\
+    \vdots\\
+    0\\
+\end{bmatrix} (\bmod M)$$
+
 Note that,   
 $$\begin{aligned}
     X_i & \equiv [a^{i-1} * X_1 + b(1 + a + \dots + a^{i-2})] \bmod M \\
@@ -513,14 +551,50 @@ $$\begin{aligned}
 for some $\alpha_{i-1} \in Z$.  
 Here $L$ is a $2k-1 \times k$ lattice, and we also observe that the bottom $k-1$ rows can all be written as linear combinations of the top $k$ rows, and therefore, the top $k$ rows form a basis for this lattice. Thus, we can rewrite it as:
 
-![](report_extras/l2.png)
+$$L' = \begin{bmatrix}
+    a & -1 & \dots & 0\\
+    a^2 & 0 & \dots & 0\\
+    \vdots & \vdots & \ddots & \vdots\\
+    a^{k-1} & 0 & \dots & -1\\
+    M & 0 & \dots & 0\\
+    \end{bmatrix} \implies L' \begin{bmatrix}
+    X_1\\
+    X_2\\
+    X_3\\
+    \vdots\\
+    X_k\\
+\end{bmatrix} \equiv \begin{bmatrix}
+    b\\
+    b\frac{a^2-1}{a-1}\\
+    \vdots\\
+    b\frac{a^{k-1}-1}{a-1}\\
+    0\\
+\end{bmatrix} (\bmod M)$$
 
 $$X_i = 2^t * x_i + y_i$$
 Using the above equation,
 
-![](report_extras/l3.png)
+$$L' \begin{bmatrix}
+    y_1\\
+    y_2\\
+    y_3\\
+    \vdots\\
+    y_k\\
+\end{bmatrix} \equiv \left( b * \begin{bmatrix}
+    1\\
+    \frac{a^2-1}{a-1}\\
+    \vdots\\
+    \frac{a^{k-1}-1}{a-1}\\
+    0\\
+\end{bmatrix} + 2^t * L' * \begin{bmatrix}
+    x_1\\
+    x_2\\
+    \vdots\\
+    x_k\\
+\end{bmatrix} \right) (\bmod M)$$
 
-Let $c$ be the above vector, taken modulo $M$, then considering
+Let $c$ be the above vector, taken modulo $M$.  
+And consider,  
 $L'_r =$ LLL reduced basis of $L'$ and\
 $c_r$ such that each element of $c_r \leq \frac{M}{2}$ in absolute value. i.e. $c_r (\bmod M) \equiv c (\bmod M)$   
 Then, the mentioned paper shows that there exists **atmost one integral "small" solution** to the (non-modular) linear equation 
@@ -538,13 +612,14 @@ The only catch here is whether this `small` solution indeed is the correct solut
 ## Our Work
 We implemented both the aforementioned attacks in python3. The attack on LCG allows us to recover the seed easily. However, the lattice-based attack on truncated LCG is somewhat different in the sense that the method only allows us to recover $X_1$, which is not the seed we seek.  
 
-One solution is to modify our original algorithm to include $X_0$ in the unknown vector $y$; however since $X_0$ does not have a known $x_0$ part, this modification may actually yield results much worse, since $X_0$ is a possibly large vector, and hence the norm bounds may now be violated. We had tried this method earlier, but it couldn't correctly recover the seed in many cases, especially the cases in which $a$ was not co-prime with $M$!  
+One solution is to modify our original algorithm to include $X_0$ in the unknown vector $y$; however since $X_0$ does not have a known $x_0$ part, this modification may actually yield results much worse, since $X_0$ is a possibly large value, and hence the norm bounds may now be violated. We had tried this method earlier, but it couldn't correctly recover the seed in many cases, especially the cases in which $a$ was not co-prime with $M$!  
 Another possible solution is to realize that $X_0$ in most cases needn't be unique, since the only outputs we obtain start from $X_1$! Thus, there could be multiple possible $X_0$'s which could yield the same sequence. We rely on our algorithm to obtain $X_1$, and then a SAT solver is incorporated to find out all possible $X_0$ which could yield the expected $X_1$. This way, we do not have to rely on the existence of the modular inverse of $a$, and several possible existing seeds can be recovered easily.
 
 Another attack on truncated LCGs is implemented which doesn't rely on the knowledge or absence thereof of the parameters of the (truncated) LCG. This attack proceeds by modelling the parameter recovery problem for LCG as a [SMT](https://en.wikipedia.org/wiki/Satisfiability_modulo_theories) decision problem.  
 We again used the SMT solver [Z3Prover](https://github.com/Z3Prover/z3) and encoded our parameter recovery problem by constructing the unknown parameters as bit-vectors of same length as our modulus(that is, even though the parameters might be unknown, their maximum possible bit-lengths are assumed to be known and so is the truncation!).
+The solutions to this modelling would, therefore, yield us valid seed(s) as well as the corresponding parameters, ie, those parameters which with the given information would generate the output sequence with the corresponding seed.  
 
-### Results
+## Results
 We observed that in cases where $a$ was *not* co-prime to $M$, say for example when $M$ is a power of $2$ and $a$ is even, multiple solutions always exist! Both the mentioned attacks on truncated LCGs were able to recover these multiple solutions.  
 It was observed that Lattice-based attack is much more faster than SAT-based attack. However, since the lattice attack requires a bit more information than the information-theoretic lower bound, it doesn't perform very well in cases where the number of outputs are just enough in bit-sizes. In these cases, however, a SAT-based attack still performs very well, and as is usual, multiple solutions if possible, are reported. 
 
